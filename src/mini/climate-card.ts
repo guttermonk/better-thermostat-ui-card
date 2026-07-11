@@ -56,6 +56,7 @@ import {
 import { alphaColor } from "../shared/color";
 import { findBtStubEntity, formatHumidity, isWindowOpen } from "../shared/bt";
 import {
+  getConnectivityLostEntityId,
   getErrorEntityId,
   getLowBattery,
   isDegraded,
@@ -206,6 +207,7 @@ export class BetterThermostatUISmallCard
         this._config?.window_sensor,
         this._config?.humidity_sensor,
         this._config?.preset_entity,
+        this._config?.connectivity_entity,
       ]);
     }
     return true;
@@ -412,6 +414,7 @@ export class BetterThermostatUISmallCard
     );
     return html`
       <mushroom-button
+        class=${classMap({ "bt-offline": this._presetsOffline })}
         style=${styleMap(iconStyle)}
         .mode=${mode}
         .disabled=${!isAvailable(entity)}
@@ -435,6 +438,14 @@ export class BetterThermostatUISmallCard
 
   private _presetIcon(mode: string): string {
     return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
+  }
+
+  // Preset changes are pointless while the device is unreachable — the
+  // buttons stay clickable but are dimmed as a "don't bother" signal.
+  private get _presetsOffline(): boolean {
+    return (
+      getConnectivityLostEntityId(this.hass, this._config) !== undefined
+    );
   }
 
   protected async firstUpdated(changedProperties: PropertyValues) {
@@ -525,7 +536,9 @@ export class BetterThermostatUISmallCard
     }
 
     const lowBattery = getLowBattery(entity, this._config);
-    const errorEntityId = getErrorEntityId(entity, this._config);
+    const errorEntityId =
+      getErrorEntityId(entity, this._config) ??
+      getConnectivityLostEntityId(this.hass, this._config);
     const degradedMode = isDegraded(entity, this._config);
     if (degradedMode) {
       return html`
@@ -735,6 +748,7 @@ export class BetterThermostatUISmallCard
       );
       return html`
         <mushroom-button
+          class=${classMap({ "bt-offline": this._presetsOffline })}
           style=${styleMap(iconStyle)}
           .mode=${selectedMode}
           title=${presetLabel}
@@ -758,6 +772,7 @@ export class BetterThermostatUISmallCard
     }
     return html`
       <mushroom-button
+        class=${classMap({ "bt-offline": this._presetsOffline })}
         style=${styleMap(iconStyle)}
         .mode=${selectedMode}
         title=${label}
@@ -872,6 +887,11 @@ export class BetterThermostatUISmallCard
           gap: 15px;
           padding: 0 1em 0em 1em;
           background-color: rgba(var(--rgb-card-background-color), 0.3);
+        }
+        /* Device unreachable (connectivity_entity / preset_entity signal):
+           preset changes won't stick, so dim the buttons — still clickable. */
+        mushroom-button.bt-offline {
+          opacity: 0.4;
         }
       `,
     ];

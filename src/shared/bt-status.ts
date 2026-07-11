@@ -1,7 +1,8 @@
 // Pure helpers for the Better Thermostat status attributes (batteries, errors,
 // degraded_mode). BT serializes these as JSON strings on the climate entity.
 import memoizeOne from "memoize-one";
-import { BtClimateEntity } from "./climate";
+import type { HomeAssistant } from "mushroom-cards/src/ha";
+import { BtClimateEntity, UNAVAILABLE, UNKNOWN } from "./climate";
 import { SharedBtCardConfig } from "./config";
 
 interface BatteryState {
@@ -80,6 +81,41 @@ export function getErrorEntityId(
   if (config?.debug_connection) return "Debug Connection";
   if (config?.disable_connection_lost_warning) return undefined;
   return parseErrorEntityId(entity.attributes?.errors);
+}
+
+// Connectivity for devices whose integration can't report outages via the
+// climate entity itself. Two signals, both optional:
+// - connectivity_entity (e.g. a ping binary_sensor): "off" means the device
+//   is unreachable even though its integration keeps serving cached state
+//   (infinitude proxies do this). A missing entity also warns — it was
+//   configured as the source of truth and is giving no signal.
+// - preset_entity going unavailable: HomeKit marks every entity of an
+//   unreachable device unavailable, so the preset select doubles as a
+//   connectivity signal.
+// Returns the entity id the warning badge should open more-info for.
+export function getConnectivityLostEntityId(
+  hass: HomeAssistant,
+  config?: SharedBtCardConfig,
+): string | undefined {
+  if (config?.disable_connection_lost_warning) return undefined;
+  if (config?.connectivity_entity) {
+    const state = hass.states[config.connectivity_entity]?.state;
+    if (
+      state === undefined ||
+      state === "off" ||
+      state === UNAVAILABLE ||
+      state === UNKNOWN
+    ) {
+      return config.connectivity_entity;
+    }
+  }
+  if (config?.preset_entity) {
+    const state = hass.states[config.preset_entity]?.state;
+    if (state === UNAVAILABLE || state === UNKNOWN) {
+      return config.preset_entity;
+    }
+  }
+  return undefined;
 }
 
 export function isDegraded(

@@ -58,6 +58,7 @@ import {
 import { alphaColor } from "../shared/color";
 import { findBtStubEntity, formatHumidity, isWindowOpen } from "../shared/bt";
 import {
+  getConnectivityLostEntityId,
   getErrorEntityId,
   getLowBattery,
   isDegraded,
@@ -205,6 +206,7 @@ export class BetterThermostatUINormalCard
         this._config?.window_sensor,
         this._config?.humidity_sensor,
         this._config?.preset_entity,
+        this._config?.connectivity_entity,
       ]);
     }
     return true;
@@ -576,9 +578,17 @@ export class BetterThermostatUINormalCard
       ? `${Math.min(this._resizeController.value, 320)}px`
       : undefined;
     const name = this._config.name || stateObj.attributes.friendly_name || "";
+    // The plus/minus buttons live in the dial's empty bottom band — when
+    // they don't render, the band is collapsed (see .no-buttons).
+    const hideButtons =
+      this._config.disable_buttons ||
+      !(this._supportsTargetValue || this._supportsTargetRange);
 
     return html`
-      <ha-card style=${styleMap(climateColorOverrides(this._config.colors))}>
+      <ha-card
+        class=${classMap({ "no-buttons": hideButtons })}
+        style=${styleMap(climateColorOverrides(this._config.colors))}
+      >
         <p class="title">${name}</p>
         <div class="container">
           <div
@@ -599,8 +609,7 @@ export class BetterThermostatUINormalCard
                 showCurrentAsBig,
               )}${this._renderHumidity()}
             </div>
-            ${!this._config.disable_buttons &&
-            (this._supportsTargetValue || this._supportsTargetRange)
+            ${!hideButtons
               ? this._renderButtons(
                   this._supportsTargetRange ? this._selectTarget : "value",
                 )
@@ -747,7 +756,9 @@ export class BetterThermostatUINormalCard
   private _renderLabel(windowOpen: boolean) {
     const stateObj = this._stateObj!;
     const lowBatteryEntity = getLowBattery(stateObj, this._config);
-    const errorEntityId = getErrorEntityId(stateObj, this._config);
+    const errorEntityId =
+      getErrorEntityId(stateObj, this._config) ??
+      getConnectivityLostEntityId(this.hass, this._config);
     const degradedMode = isDegraded(stateObj, this._config);
 
     const warningIcons = html`
@@ -1073,6 +1084,7 @@ export class BetterThermostatUINormalCard
     );
     return html`
       <mushroom-button
+        class=${classMap({ "bt-offline": this._presetsOffline })}
         style=${styleMap(iconStyle)}
         .mode=${mode}
         .disabled=${!isAvailable(stateObj)}
@@ -1090,6 +1102,14 @@ export class BetterThermostatUINormalCard
 
   private _presetIcon(mode: string): string {
     return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
+  }
+
+  // Preset changes are pointless while the device is unreachable — the
+  // buttons stay clickable but are dimmed as a "don't bother" signal.
+  private get _presetsOffline(): boolean {
+    return (
+      getConnectivityLostEntityId(this.hass, this._config) !== undefined
+    );
   }
 
   private renderModeButton(mode: string) {
@@ -1143,6 +1163,7 @@ export class BetterThermostatUINormalCard
         );
         return html`
           <mushroom-button
+            class=${classMap({ "bt-offline": this._presetsOffline })}
             style=${styleMap(iconStyle)}
             .mode=${selectedMode}
             title=${presetLabel}
@@ -1162,6 +1183,7 @@ export class BetterThermostatUINormalCard
       } else if (presets.length > 1) {
         return html`
           <mushroom-button
+            class=${classMap({ "bt-offline": this._presetsOffline })}
             style=${styleMap(iconStyle)}
             .mode=${selectedMode}
             .disabled=${!isAvailable(this._stateObj)}

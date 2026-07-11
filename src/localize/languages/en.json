@@ -43,6 +43,7 @@
         "window_sensor": "Window sensor",
         "humidity_sensor": "Humidity sensor",
         "preset_entity": "Preset select entity",
+        "connectivity_entity": "Connectivity sensor (off = device unreachable)",
         "not_bt_info": "The selected entity is not a Better Thermostat entity. The card still works with it, but to show the window open and humidity states you need to select the matching sensors in the 'External sensors' section."
       }
     }

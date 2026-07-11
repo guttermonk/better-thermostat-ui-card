@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  getConnectivityLostEntityId,
   getErrorEntityId,
   getLowBattery,
   isDegraded,
@@ -116,5 +117,84 @@ describe("config-aware wrappers", () => {
     expect(isDegraded(entity({ degraded_mode: true }), {})).toBe(true);
     expect(isDegraded(entity({ degraded_mode: "on" }), {})).toBe(false);
     expect(isDegraded(entity({}), {})).toBe(false);
+  });
+});
+
+describe("getConnectivityLostEntityId", () => {
+  const hassWith = (states: Record<string, string>) =>
+    ({
+      states: Object.fromEntries(
+        Object.entries(states).map(([id, state]) => [
+          id,
+          { entity_id: id, state, attributes: {} },
+        ]),
+      ),
+    }) as any;
+
+  it("returns nothing when no signal entities are configured", () => {
+    expect(getConnectivityLostEntityId(hassWith({}), {})).toBeUndefined();
+    expect(
+      getConnectivityLostEntityId(hassWith({}), undefined),
+    ).toBeUndefined();
+  });
+
+  it("connectivity_entity: off/unavailable/unknown/missing mean unreachable", () => {
+    const config = { connectivity_entity: "binary_sensor.ping" };
+    expect(
+      getConnectivityLostEntityId(
+        hassWith({ "binary_sensor.ping": "on" }),
+        config,
+      ),
+    ).toBeUndefined();
+    for (const state of ["off", "unavailable", "unknown"]) {
+      expect(
+        getConnectivityLostEntityId(
+          hassWith({ "binary_sensor.ping": state }),
+          config,
+        ),
+      ).toBe("binary_sensor.ping");
+    }
+    expect(getConnectivityLostEntityId(hassWith({}), config)).toBe(
+      "binary_sensor.ping",
+    );
+  });
+
+  it("preset_entity doubles as a signal only when unavailable/unknown", () => {
+    const config = { preset_entity: "select.mode" };
+    expect(
+      getConnectivityLostEntityId(hassWith({ "select.mode": "Home" }), config),
+    ).toBeUndefined();
+    expect(
+      getConnectivityLostEntityId(
+        hassWith({ "select.mode": "unavailable" }),
+        config,
+      ),
+    ).toBe("select.mode");
+    // A missing preset_entity is a config problem, not an outage.
+    expect(getConnectivityLostEntityId(hassWith({}), config)).toBeUndefined();
+  });
+
+  it("disable_connection_lost_warning suppresses it", () => {
+    expect(
+      getConnectivityLostEntityId(hassWith({ "binary_sensor.ping": "off" }), {
+        connectivity_entity: "binary_sensor.ping",
+        disable_connection_lost_warning: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it("connectivity_entity wins over preset_entity as the badge target", () => {
+    expect(
+      getConnectivityLostEntityId(
+        hassWith({
+          "binary_sensor.ping": "off",
+          "select.mode": "unavailable",
+        }),
+        {
+          connectivity_entity: "binary_sensor.ping",
+          preset_entity: "select.mode",
+        },
+      ),
+    ).toBe("binary_sensor.ping");
   });
 });

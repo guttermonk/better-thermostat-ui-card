@@ -295,6 +295,17 @@ export const ShadowStyles = css`
     gap: 18px;
   }
 
+  /* No plus/minus buttons rendered (disable_buttons, or no adjustable
+     target): the dial's 270° arc leaves ~14% of the square wrapper empty at
+     the bottom, where the buttons normally sit — pull the actions up over
+     that band. Deliberately NOT a negative margin on the wrapper: the dial
+     is sized from .container's observed height, so shrinking the container
+     would shrink the dial in a feedback loop. The % resolves against the
+     card width; max() caps it once the card is wider than the 320px dial. */
+  ha-card.no-buttons .actions {
+    margin-top: max(-45px, -14%);
+  }
+
   .dual {
     display: flex;
     flex-direction: row;
@@ -348,6 +359,12 @@ export const ShadowStyles = css`
     align-content: center;
     justify-content: center;
     align-items: center;
+  }
+
+  /* Device unreachable (connectivity_entity / preset_entity signal): preset
+     changes won't stick, so dim the buttons — still clickable. */
+  mushroom-button.bt-offline {
+    opacity: 0.4;
   }
 
   /* show_all_presets: dedicated preset row below the mode buttons. */

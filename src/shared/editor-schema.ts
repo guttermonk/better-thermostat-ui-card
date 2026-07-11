@@ -45,6 +45,7 @@ export const CLIMATE_LABELS: string[] = [
   "window_sensor",
   "humidity_sensor",
   "preset_entity",
+  "connectivity_entity",
   "color_source",
   "section_display",
   "section_interaction",
@@ -95,6 +96,10 @@ export const computeSensorsSection = (): HaFormSchema =>
       {
         name: "preset_entity",
         selector: { entity: { domain: ["select", "input_select"] } },
+      },
+      {
+        name: "connectivity_entity",
+        selector: { entity: { domain: ["binary_sensor"] } },
       },
     ],
   }) as any;

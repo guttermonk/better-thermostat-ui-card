@@ -87,6 +87,18 @@ preset_order:
   - Away
 ```
 
+## Connectivity warning
+
+Some integrations keep answering with cached state while the device itself is offline (e.g. an [Infinitude](https://github.com/nebulous/infinitude) proxy whose thermostat lost its network connection) — the entity looks healthy, but preset/temperature changes won't stick. Point `connectivity_entity` ("External sensors" section in the editor) at a `binary_sensor` that truthfully reflects the device's connection, such as one from HA's built-in [Ping integration](https://www.home-assistant.io/integrations/ping/) targeting the thermostat's IP:
+
+```yaml
+type: custom:better-thermostat-normal-climate-card
+entity: climate.living_room
+connectivity_entity: binary_sensor.thermostat_ping
+```
+
+While the sensor is `off` (or unavailable), the card shows the same connection-lost warning icon used for Better Thermostat entities — clicking it opens the sensor — and dims the preset buttons so you know changes won't go through. If a `preset_entity` is configured, the card also warns automatically when that entity becomes unavailable (HomeKit marks every entity of an unreachable device unavailable), with no extra sensor needed. The existing "Turn off the connection lost warning" toggle suppresses this warning too.
+
 ## Goals
 
 - [X] Add better_thermostat support for showing the extra status

@@ -42,6 +42,11 @@ export type SharedBtCardConfig = {
   // select/input_select entity that carries the presets when the climate
   // entity doesn't expose preset_modes (e.g. ecobee via HomeKit).
   preset_entity?: string;
+  // binary_sensor reflecting the device's network connection (e.g. a ping
+  // sensor) — "off" shows the connection-lost warning and dims the presets.
+  // Needed when the integration masks outages (e.g. an infinitude proxy
+  // serving cached state while the thermostat is offline).
+  connectivity_entity?: string;
   // Per-preset display settings, keyed by the raw preset/option name.
   preset_options?: Record<string, PresetDisplayOptions>;
   // Button order: listed presets first, unlisted ones follow as detected.
@@ -72,6 +77,7 @@ export const sharedBtConfigStruct = object({
   window_sensor: optional(string()),
   humidity_sensor: optional(string()),
   preset_entity: optional(string()),
+  connectivity_entity: optional(string()),
   preset_options: optional(
     record(
       string(),
