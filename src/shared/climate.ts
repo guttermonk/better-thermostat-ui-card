@@ -81,6 +81,25 @@ export function getPresetModes(
   );
 }
 
+// Per-preset display settings from the `preset_options` card config,
+// keyed by the raw preset/option name.
+export type PresetDisplayOptions = { hidden?: boolean; icon?: string };
+
+// The presets the cards actually render: the detected list minus the ones
+// hidden via preset_options.
+export function getVisiblePresetModes(
+  hass: HomeAssistant,
+  stateObj: BtClimateEntity,
+  config: {
+    preset_entity?: string;
+    preset_options?: Record<string, PresetDisplayOptions>;
+  },
+): string[] {
+  return getPresetModes(hass, stateObj, config.preset_entity).filter(
+    (mode) => !config.preset_options?.[mode]?.hidden,
+  );
+}
+
 // The active preset, or undefined when none is set. A select entity always
 // carries a value, so its state is only rejected when unavailable/unknown.
 export function getCurrentPreset(

@@ -9,19 +9,31 @@ import { loadHaComponents } from "mushroom-cards/src/utils/loader";
 import { BetterThermostatUINormalCardConfig } from "./climate-card-config";
 import { CLIMATE_CARD_EDITOR_NAME, CLIMATE_ENTITY_DOMAINS } from "./const";
 import { isBtEntity } from "../shared/bt";
+import { getPresetDisplayName } from "../shared/climate";
 import { createChainedLocalize } from "../shared/localize";
 import {
+  PRESET_ICON_PREFIX,
+  PRESET_SHOW_PREFIX,
   computeColorLabel,
   computeColorsSchema,
   computeDisplaySection,
   computeFeaturesSection,
   computeInteractionSection,
+  computePresetFields,
+  computePresetsSection,
   computeSensorsSection,
   computeWarningsSection,
+  extractPresetOptions,
 } from "../shared/editor-schema";
 
 const computeSchema = memoizeOne(
-  (isBt: boolean, hvacModes?: string, presetModes?: string): HaFormSchema[] => [
+  (
+    isBt: boolean,
+    hvacModes?: string,
+    presetModes?: string,
+    presetSourceLabel?: string,
+    hvacSourceLabel?: string,
+  ): HaFormSchema[] => [
     {
       name: "entity",
       selector: { entity: { domain: CLIMATE_ENTITY_DOMAINS } },
@@ -32,7 +44,13 @@ const computeSchema = memoizeOne(
       { name: "show_current_as_primary" },
       { name: "show_secondary" },
     ]),
-    computeColorsSchema(hvacModes, presetModes),
+    computeColorsSchema(
+      hvacModes,
+      presetModes,
+      presetSourceLabel,
+      hvacSourceLabel,
+    ),
+    ...computePresetsSection(presetModes),
     computeInteractionSection(),
     computeFeaturesSection(),
     // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
@@ -99,6 +117,8 @@ export class NormalClimateCardEditor
       isBt,
       stateObj ? (stateObj.attributes.hvac_modes ?? []).join(",") : undefined,
       presetModes,
+      localize("editor.card.climate.color_source_preset"),
+      localize("editor.card.climate.color_source_hvac"),
     );
 
     return html`
@@ -114,9 +134,35 @@ export class NormalClimateCardEditor
         .data=${{
           ...this._config,
           low_battery_threshold: this._config?.low_battery_threshold ?? 10,
+          // Mirror the card's effective defaults so the toggles reflect
+          // reality: secondary info is shown unless explicitly disabled, and
+          // setConfig() defaults disable_buttons to true.
+          show_secondary: this._config?.show_secondary ?? true,
+          disable_buttons: this._config?.disable_buttons ?? true,
+          ...computePresetFields(presetModes, this._config?.preset_options),
         }}
         .schema=${schema}
         .computeLabel=${(schema: HaFormSchema) => {
+          if (
+            schema.name.startsWith(PRESET_SHOW_PREFIX) ||
+            schema.name.startsWith(PRESET_ICON_PREFIX)
+          ) {
+            const isShow = schema.name.startsWith(PRESET_SHOW_PREFIX);
+            const preset = schema.name.slice(
+              (isShow ? PRESET_SHOW_PREFIX : PRESET_ICON_PREFIX).length,
+            );
+            const presetName = stateObj
+              ? getPresetDisplayName(
+                  this.hass!,
+                  stateObj as any,
+                  preset,
+                  this._config?.preset_entity,
+                )
+              : preset;
+            return localize(
+              `editor.card.climate.${isShow ? "preset_show" : "preset_icon"}`,
+            ).replace("{preset}", presetName);
+          }
           if (schema.name === "entity") {
             // Use the same localize chain to ensure the generic translation
             return (
@@ -154,9 +200,9 @@ export class NormalClimateCardEditor
 
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    const value = {
+    const value = extractPresetOptions({
       ...(ev.detail.value as BetterThermostatUINormalCardConfig),
-    };
+    });
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.
     if (value.colors) {

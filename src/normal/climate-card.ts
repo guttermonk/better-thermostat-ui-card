@@ -39,7 +39,7 @@ import {
   UNAVAILABLE,
   getCurrentPreset,
   getPresetDisplayName,
-  getPresetModes,
+  getVisiblePresetModes,
   setClimateMode,
   supportsFeature,
 } from "../shared/climate";
@@ -505,11 +505,13 @@ export class BetterThermostatUINormalCard
     const currentPreset = getCurrentPreset(this.hass, stateObj, presetEntity);
     // A select-based preset always has a value — only recolor the dial for
     // presets that map to a known color slot, or every unknown option would
-    // force the grey "off" fallback.
+    // force the grey "off" fallback. With colors.color_source "hvac" the
+    // dial keeps the hvac mode/action color even while a preset is active.
     if (windowOpen) {
       actionColor = "var(--info-color)";
       stateColor = "var(--info-color)";
     } else if (
+      this._config.colors?.color_source !== "hvac" &&
       currentPreset != null &&
       (!presetEntity || hasClimateColor(currentPreset))
     ) {
@@ -935,7 +937,7 @@ export class BetterThermostatUINormalCard
       ...(rawHvacModes.includes("off") ? ["off"] : []),
     ];
 
-    const presets = getPresetModes(this.hass, stateObj, config.preset_entity);
+    const presets = getVisiblePresetModes(this.hass, stateObj, config);
     const hasPresets = presets.length > 0;
     // With show_all_presets, presets get a dedicated row below the mode
     // buttons instead of the collapsed button + overlay.
@@ -1041,9 +1043,13 @@ export class BetterThermostatUINormalCard
         aria-label=${label}
         @click=${this.triggerModeChange.bind(this, mode)}
       >
-        <ha-icon .icon=${getPresetIcon(mode)}></ha-icon>
+        <ha-icon .icon=${this._presetIcon(mode)}></ha-icon>
       </mushroom-button>
     `;
+  }
+
+  private _presetIcon(mode: string): string {
+    return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
   }
 
   private renderModeButton(mode: string) {
@@ -1067,9 +1073,13 @@ export class BetterThermostatUINormalCard
       }
       const icon =
         currentPreset != null
-          ? getPresetIcon(currentPreset)
+          ? this._presetIcon(currentPreset)
           : getHvacModeIcon("none");
-      const presets = getPresetModes(this.hass, this._stateObj, presetEntity);
+      const presets = getVisiblePresetModes(
+        this.hass,
+        this._stateObj,
+        this._config ?? {},
+      );
       const label =
         currentPreset != null
           ? getPresetDisplayName(
@@ -1099,7 +1109,7 @@ export class BetterThermostatUINormalCard
               this._presetOverlay.setOpen(true);
             }}
           >
-            <ha-icon .icon=${getPresetIcon(presets[0])}></ha-icon>
+            <ha-icon .icon=${this._presetIcon(presets[0])}></ha-icon>
           </mushroom-button>
         `;
       } else if (presets.length > 1) {

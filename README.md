@@ -49,6 +49,13 @@ colors:
 
 Available keys: `auto`, `cool`, `dry`, `fan_only`, `heat`, `heat_cool`, `eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`.
 
+While a preset is active it drives the card's background/dial color by default. Set `color_source: hvac` inside `colors:` (the "Background color follows" dropdown in the editor's Colors section) to keep the HVAC mode color instead:
+
+```yaml
+colors:
+  color_source: hvac
+```
+
 Themes can override the same colors globally via the `--bt-color-<key>` CSS variables (underscores become dashes, e.g. `--bt-color-fan-only`); the legacy `--bt-state-*` RGB-triplet theme variables keep working as defaults.
 
 ## Presets
@@ -65,6 +72,16 @@ show_all_presets: true
 ```
 
 Options whose (case-insensitive) name matches a known preset (`eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`) get that preset's icon and color; other options get a generic icon.
+
+The editor's **Presets** section lists every detected preset with a show/hide toggle and an icon picker. In YAML this is the `preset_options` object, keyed by the raw preset/option name:
+
+```yaml
+preset_options:
+  eco:
+    icon: mdi:leaf-circle
+  Away:
+    hidden: true
+```
 
 ## Goals
 

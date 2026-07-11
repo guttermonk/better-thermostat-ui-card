@@ -57,9 +57,16 @@ export const CLIMATE_COLOR_KEYS = [
 
 export type ClimateColorKey = (typeof CLIMATE_COLOR_KEYS)[number];
 
+// What drives the card's background/dial color while a preset is active:
+// the preset's color (default) or the hvac mode's color.
+export type ClimateColorSource = "preset" | "hvac";
+
 // Card config: color per mode/preset — a theme token (`deep-orange`), or any
-// raw CSS color (`#ff00ff`, `rgb(1,2,3)`) as escape hatch.
-export type ClimateColorsConfig = Partial<Record<ClimateColorKey, string>>;
+// raw CSS color (`#ff00ff`, `rgb(1,2,3)`) as escape hatch — plus the
+// `color_source` selector, which lives in the same `colors:` object.
+export type ClimateColorsConfig = Partial<Record<ClimateColorKey, string>> & {
+  color_source?: ClimateColorSource;
+};
 
 const colorVar = (key: string) => `var(--bt-color-${key.replace(/_/g, "-")})`;
 
@@ -169,11 +176,13 @@ export function getHvacModeIcon(hvacMode: ClimateMode | string): string {
   return CLIMATE_HVAC_MODE_ICONS[hvacMode as ClimateMode] ?? "mdi:thermostat";
 }
 
-// Icon for a preset button. Case-insensitive so select-based presets
+// Icon for a preset button. A per-preset override from the card config
+// (preset_options) wins; otherwise case-insensitive so select-based presets
 // ("Home", "Sleep") reuse the known icons; unrecognized presets get a
 // generic icon instead of the thermostat fallback, which would collide
 // with the collapsed presets button.
-export function getPresetIcon(preset: string): string {
+export function getPresetIcon(preset: string, override?: string): string {
+  if (override) return override;
   return (
     CLIMATE_HVAC_MODE_ICONS[preset.toLowerCase() as ClimateMode] ??
     "mdi:tune-variant"

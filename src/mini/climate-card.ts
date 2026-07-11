@@ -39,7 +39,7 @@ import {
   BtClimateEntity,
   getCurrentPreset,
   getPresetDisplayName,
-  getPresetModes,
+  getVisiblePresetModes,
   setClimateMode,
 } from "../shared/climate";
 import {
@@ -241,11 +241,7 @@ export class BetterThermostatUISmallCard
     // entity offers no matching controls), presets must still be reachable —
     // like on the normal card — as long as they aren't disabled themselves
     // and the controls aren't collapsed.
-    const presets = getPresetModes(
-      this.hass,
-      stateObj,
-      this._config.preset_entity,
-    );
+    const presets = getVisiblePresetModes(this.hass, stateObj, this._config);
     const hasPresets = presets.length > 0;
     const isPresetOnlyVisible =
       !isControlVisible &&
@@ -267,8 +263,11 @@ export class BetterThermostatUISmallCard
       this._config.preset_entity,
     );
     // A select-based preset always has a value — only recolor for presets
-    // with a known color slot, or every unknown option would go grey.
+    // with a known color slot, or every unknown option would go grey. With
+    // colors.color_source "hvac" the background keeps the hvac action color
+    // even while a preset is active.
     if (
+      this._config.colors?.color_source !== "hvac" &&
       currentPreset !== undefined &&
       (!this._config.preset_entity || hasClimateColor(currentPreset))
     ) {
@@ -379,9 +378,13 @@ export class BetterThermostatUISmallCard
           }
         }}
       >
-        <ha-icon .icon=${getPresetIcon(mode)}></ha-icon>
+        <ha-icon .icon=${this._presetIcon(mode)}></ha-icon>
       </mushroom-button>
     `;
+  }
+
+  private _presetIcon(mode: string): string {
+    return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
   }
 
   protected async firstUpdated(changedProperties: PropertyValues) {
@@ -637,7 +640,11 @@ export class BetterThermostatUISmallCard
   private renderPresetFeature(entity: BtClimateEntity) {
     if (this._config?.disable_presets) return nothing;
     const presetEntity = this._config?.preset_entity;
-    const presets = getPresetModes(this.hass, entity, presetEntity);
+    const presets = getVisiblePresetModes(
+      this.hass,
+      entity,
+      this._config ?? {},
+    );
     if (presets.length === 0) return nothing;
     const currentPreset = getCurrentPreset(this.hass, entity, presetEntity);
 
@@ -658,7 +665,7 @@ export class BetterThermostatUISmallCard
     }
     const icon =
       currentPreset != null
-        ? getPresetIcon(currentPreset)
+        ? this._presetIcon(currentPreset)
         : getHvacModeIcon("none");
     const label =
       currentPreset != null
@@ -688,7 +695,7 @@ export class BetterThermostatUISmallCard
             }
           }}
         >
-          <ha-icon .icon=${getPresetIcon(presets[0])}></ha-icon>
+          <ha-icon .icon=${this._presetIcon(presets[0])}></ha-icon>
         </mushroom-button>
       `;
     }

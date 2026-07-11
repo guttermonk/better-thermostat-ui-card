@@ -97,6 +97,12 @@ describe("climateColorOverrides", () => {
       {},
     );
   });
+
+  it("color_source lives in the colors object but emits no variable", () => {
+    expect(
+      climateColorOverrides({ color_source: "hvac", heat: "red" }),
+    ).toEqual({ "--bt-color-heat": "var(--red-color)" });
+  });
 });
 
 describe("climateColorDefaultStyles", () => {
@@ -153,6 +159,12 @@ describe("icons", () => {
     expect(getPresetIcon("eco")).toBe("mdi:leaf");
     expect(getPresetIcon("Home")).toBe("mdi:home");
     expect(getPresetIcon("Wake")).toBe("mdi:tune-variant");
+  });
+
+  it("a per-preset icon override wins", () => {
+    expect(getPresetIcon("eco", "mdi:flower")).toBe("mdi:flower");
+    expect(getPresetIcon("eco", undefined)).toBe("mdi:leaf");
+    expect(getPresetIcon("eco", "")).toBe("mdi:leaf");
   });
 
   it("action icons, including extended actions via their implied mode", () => {

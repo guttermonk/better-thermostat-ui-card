@@ -4,6 +4,7 @@ import {
   getCurrentPreset,
   getPresetDisplayName,
   getPresetModes,
+  getVisiblePresetModes,
   setClimateMode,
   supportsFeature,
   supportsFeatureFromAttributes,
@@ -212,6 +213,26 @@ describe("preset source helpers", () => {
     expect(
       getCurrentPreset(selectHass(), stateObj, "select.missing"),
     ).toBeUndefined();
+  });
+
+  it("getVisiblePresetModes drops presets hidden via preset_options", () => {
+    const stateObj = entity({ preset_modes: ["none", "eco", "boost"] });
+    expect(
+      getVisiblePresetModes({} as any, stateObj, {
+        preset_options: { boost: { hidden: true } },
+      }),
+    ).toEqual(["eco"]);
+    // Icon-only entries don't hide anything.
+    expect(
+      getVisiblePresetModes(selectHass(), entity({}), {
+        preset_entity: "select.eco_mode",
+        preset_options: { Away: { hidden: true }, Home: { icon: "mdi:x" } },
+      }),
+    ).toEqual(["Home", "Sleep"]);
+    expect(getVisiblePresetModes({} as any, stateObj, {})).toEqual([
+      "eco",
+      "boost",
+    ]);
   });
 
   it("getPresetDisplayName falls back to the raw mode name", () => {

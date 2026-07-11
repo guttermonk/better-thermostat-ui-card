@@ -9,6 +9,7 @@ import {
   string,
 } from "superstruct";
 import { ClimateColorsConfig } from "./climate-colors";
+import { PresetDisplayOptions } from "./climate";
 
 // Config fields shared by the normal and mini cards.
 export type SharedBtCardConfig = {
@@ -41,6 +42,8 @@ export type SharedBtCardConfig = {
   // select/input_select entity that carries the presets when the climate
   // entity doesn't expose preset_modes (e.g. ecobee via HomeKit).
   preset_entity?: string;
+  // Per-preset display settings, keyed by the raw preset/option name.
+  preset_options?: Record<string, PresetDisplayOptions>;
 };
 
 export const sharedBtConfigStruct = object({
@@ -67,4 +70,13 @@ export const sharedBtConfigStruct = object({
   window_sensor: optional(string()),
   humidity_sensor: optional(string()),
   preset_entity: optional(string()),
+  preset_options: optional(
+    record(
+      string(),
+      object({
+        hidden: optional(boolean()),
+        icon: optional(string()),
+      }),
+    ),
+  ),
 });
