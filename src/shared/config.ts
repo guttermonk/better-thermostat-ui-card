@@ -25,6 +25,9 @@ export type SharedBtCardConfig = {
   disable_eco?: boolean;
   disable_humidity?: boolean;
   disable_presets?: boolean;
+  // Show every preset as its own button instead of the collapsed
+  // presets button + fullscreen overlay.
+  show_all_presets?: boolean;
   disable_battery_warning?: boolean;
   disable_connection_lost_warning?: boolean;
   disable_degraded_warning?: boolean;
@@ -35,6 +38,9 @@ export type SharedBtCardConfig = {
   // External sensors for non Better Thermostat entities
   window_sensor?: string;
   humidity_sensor?: string;
+  // select/input_select entity that carries the presets when the climate
+  // entity doesn't expose preset_modes (e.g. ecobee via HomeKit).
+  preset_entity?: string;
 };
 
 export const sharedBtConfigStruct = object({
@@ -50,6 +56,7 @@ export const sharedBtConfigStruct = object({
   disable_eco: optional(boolean()),
   disable_humidity: optional(boolean()),
   disable_presets: optional(boolean()),
+  show_all_presets: optional(boolean()),
   disable_battery_warning: optional(boolean()),
   disable_connection_lost_warning: optional(boolean()),
   disable_degraded_warning: optional(boolean()),
@@ -59,4 +66,5 @@ export const sharedBtConfigStruct = object({
   debug_degraded: optional(boolean()),
   window_sensor: optional(string()),
   humidity_sensor: optional(string()),
+  preset_entity: optional(string()),
 });

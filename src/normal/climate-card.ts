@@ -37,6 +37,9 @@ import {
   BtClimateEntity,
   ClimateEntityFeature,
   UNAVAILABLE,
+  getCurrentPreset,
+  getPresetDisplayName,
+  getPresetModes,
   setClimateMode,
   supportsFeature,
 } from "../shared/climate";
@@ -48,6 +51,8 @@ import {
   climateColorOverrides,
   climateStateColor,
   getHvacModeIcon,
+  getPresetIcon,
+  hasClimateColor,
 } from "../shared/climate-colors";
 import { alphaColor } from "../shared/color";
 import { findBtStubEntity, formatHumidity, isWindowOpen } from "../shared/bt";
@@ -57,7 +62,7 @@ import {
   isDegraded,
 } from "../shared/bt-status";
 import { shouldUpdateForHass } from "../shared/has-changed";
-import { createChainedLocalize } from "../shared/localize";
+import { createChainedLocalize, localize } from "../shared/localize";
 import {
   PresetOverlayController,
   presetOverlayStyle,
@@ -192,6 +197,7 @@ export class BetterThermostatUINormalCard
         this._config?.entity,
         this._config?.window_sensor,
         this._config?.humidity_sensor,
+        this._config?.preset_entity,
       ]);
     }
     return true;
@@ -495,12 +501,19 @@ export class BetterThermostatUINormalCard
     // The dial follows the same --bt-color-* layer as the mode buttons, so
     // the `colors:` config and themes recolor both consistently.
     let stateColor: string | undefined = climateStateColor(stateObj);
-    const preset_mode = stateObj.attributes.preset_mode;
+    const presetEntity = this._config.preset_entity;
+    const currentPreset = getCurrentPreset(this.hass, stateObj, presetEntity);
+    // A select-based preset always has a value — only recolor the dial for
+    // presets that map to a known color slot, or every unknown option would
+    // force the grey "off" fallback.
     if (windowOpen) {
       actionColor = "var(--info-color)";
       stateColor = "var(--info-color)";
-    } else if (preset_mode != null && preset_mode !== "none") {
-      const presetColor = climateColor(preset_mode);
+    } else if (
+      currentPreset != null &&
+      (!presetEntity || hasClimateColor(currentPreset))
+    ) {
+      const presetColor = climateColor(currentPreset);
       stateColor = presetColor;
       actionColor = presetColor;
     }
@@ -911,10 +924,6 @@ export class BetterThermostatUINormalCard
   private _renderActionsSection() {
     const stateObj = this._stateObj!;
     const config = this._config!;
-    const iconStyle: StyleInfo = {
-      "--icon-color": "var(--bt-color-grey)",
-      "--bg-color": alphaColor("var(--bt-color-grey)", 0.2),
-    };
 
     const rawHvacModes: string[] = Array.isArray(stateObj.attributes.hvac_modes)
       ? stateObj.attributes.hvac_modes
@@ -925,61 +934,61 @@ export class BetterThermostatUINormalCard
       ...rawHvacModes.filter((mode) => mode !== "off"),
       ...(rawHvacModes.includes("off") ? ["off"] : []),
     ];
+
+    const presets = getPresetModes(this.hass, stateObj, config.preset_entity);
+    const hasPresets = presets.length > 0;
+    // With show_all_presets, presets get a dedicated row below the mode
+    // buttons instead of the collapsed button + overlay.
+    const showAllPresets =
+      !!config.show_all_presets && !config.disable_presets && hasPresets;
+
     const presetsIndex = Math.max(hvacModes.length - 1, 0);
-    const buttonModes: string[] = config.disable_presets
-      ? hvacModes
-      : [
-          ...hvacModes.slice(0, presetsIndex),
-          "presets",
-          ...hvacModes.slice(presetsIndex),
-        ];
+    const buttonModes: string[] =
+      config.disable_presets || showAllPresets
+        ? hvacModes
+        : [
+            ...hvacModes.slice(0, presetsIndex),
+            "presets",
+            ...hvacModes.slice(presetsIndex),
+          ];
 
     // disable_all_buttons hides the whole row, except the presets button
     // as long as presets aren't disabled themselves.
-    const hasPresets =
-      (
-        stateObj.attributes.preset_modes?.filter((p: string) => p !== "none") ??
-        []
-      ).length > 0;
     const presetOnly =
       !!config.disable_all_buttons && !config.disable_presets && hasPresets;
     const showActions = !config.disable_all_buttons || presetOnly;
     if (!showActions) return nothing;
 
+    const currentPreset = getCurrentPreset(
+      this.hass,
+      stateObj,
+      config.preset_entity,
+    );
+
     return html`
       <div class="actions">
-        <div
-          class=${classMap({
-            "preset-select": true,
-            open: this._presetOverlay.open,
-          })}
-        >
-          ${(stateObj.attributes.preset_modes ?? [])
-            .filter((mode: string) => mode !== "none")
-            .map(
-              (mode: string) => html`
-              <mushroom-button
-                style=${styleMap(iconStyle)}
-                .mode=${mode}
-                .disabled=${!isAvailable(stateObj)}
-                @click=${this.triggerModeChange.bind(this, mode)}
-                @longpress=${(e: Event) => {
-                  e.stopPropagation();
-                  this._presetOverlay.setOpen(true);
-                }}
+        ${showAllPresets
+          ? nothing
+          : html`
+              <div
+                class=${classMap({
+                  "preset-select": true,
+                  open: this._presetOverlay.open,
+                })}
               >
-                <ha-icon .icon=${getHvacModeIcon(mode)}></ha-icon>
-              </mushroom-button>
-            `,
-          )}
-        </div>
-
+                ${presets.map((mode) =>
+                  this._renderPresetButton(mode, currentPreset),
+                )}
+              </div>
+            `}
         ${presetOnly
-          ? html`
-              <mushroom-button-group .fill=${true} ?rtl=${false}>
-                ${this.renderModeButton("presets")}
-              </mushroom-button-group>
-            `
+          ? showAllPresets
+            ? nothing
+            : html`
+                <mushroom-button-group .fill=${true} ?rtl=${false}>
+                  ${this.renderModeButton("presets")}
+                </mushroom-button-group>
+              `
           : config.features?.length
             ? html`
                 <cts-hui-card-features
@@ -994,7 +1003,46 @@ export class BetterThermostatUINormalCard
                   ${buttonModes.map((mode) => this.renderModeButton(mode))}
                 </mushroom-button-group>
               `}
+        ${showAllPresets
+          ? html`
+              <div class="preset-row">
+                ${presets.map((mode) =>
+                  this._renderPresetButton(mode, currentPreset),
+                )}
+              </div>
+            `
+          : nothing}
       </div>
+    `;
+  }
+
+  // One preset as a button: used both in the fullscreen overlay and the
+  // show_all_presets row. The active preset is highlighted in its color.
+  private _renderPresetButton(mode: string, currentPreset?: string) {
+    const stateObj = this._stateObj!;
+    const active = mode === currentPreset;
+    const color = active ? climateColor(mode) : "var(--bt-color-grey)";
+    const iconStyle: StyleInfo = {
+      "--icon-color": color,
+      "--bg-color": alphaColor(color, 0.2),
+    };
+    const label = getPresetDisplayName(
+      this.hass,
+      stateObj,
+      mode,
+      this._config?.preset_entity,
+    );
+    return html`
+      <mushroom-button
+        style=${styleMap(iconStyle)}
+        .mode=${mode}
+        .disabled=${!isAvailable(stateObj)}
+        title=${label}
+        aria-label=${label}
+        @click=${this.triggerModeChange.bind(this, mode)}
+      >
+        <ha-icon .icon=${getPresetIcon(mode)}></ha-icon>
+      </mushroom-button>
     `;
   }
 
@@ -1004,32 +1052,54 @@ export class BetterThermostatUINormalCard
     }
 
     if (mode === "presets") {
-      const presetMode = this._stateObj?.attributes?.preset_mode;
+      const presetEntity = this._config?.preset_entity;
+      const currentPreset = getCurrentPreset(
+        this.hass,
+        this._stateObj,
+        presetEntity,
+      );
       const iconStyle: StyleInfo = {};
-      const selectedMode =
-        presetMode != null && presetMode !== "none" ? presetMode : "none";
+      const selectedMode = currentPreset ?? "none";
       const color = climateColor(selectedMode);
-      if (presetMode != null && presetMode !== "none") {
+      if (currentPreset != null) {
         iconStyle["--icon-color"] = color;
         iconStyle["--bg-color"] = alphaColor(color, 0.2);
       }
-      const icon = getHvacModeIcon(selectedMode as HvacMode);
-      const presets = (this._stateObj?.attributes?.preset_modes?.filter(
-        (p) => p != "none",
-      ) || []) as HvacMode[];
+      const icon =
+        currentPreset != null
+          ? getPresetIcon(currentPreset)
+          : getHvacModeIcon("none");
+      const presets = getPresetModes(this.hass, this._stateObj, presetEntity);
+      const label =
+        currentPreset != null
+          ? getPresetDisplayName(
+              this.hass,
+              this._stateObj,
+              currentPreset,
+              presetEntity,
+            )
+          : localize({ hass: this.hass, string: "extra_states.presets" });
 
       if (presets.length === 1) {
+        const presetLabel = getPresetDisplayName(
+          this.hass,
+          this._stateObj,
+          presets[0],
+          presetEntity,
+        );
         return html`
           <mushroom-button
             style=${styleMap(iconStyle)}
             .mode=${selectedMode}
+            title=${presetLabel}
+            aria-label=${presetLabel}
             @click=${this.triggerModeChange.bind(this, presets[0])}
             @longpress=${(e: Event) => {
               e.stopPropagation();
               this._presetOverlay.setOpen(true);
             }}
           >
-            <ha-icon .icon=${getHvacModeIcon(presets[0] as HvacMode)}></ha-icon>
+            <ha-icon .icon=${getPresetIcon(presets[0])}></ha-icon>
           </mushroom-button>
         `;
       } else if (presets.length > 1) {
@@ -1038,6 +1108,8 @@ export class BetterThermostatUINormalCard
             style=${styleMap(iconStyle)}
             .mode=${selectedMode}
             .disabled=${!isAvailable(this._stateObj)}
+            title=${label}
+            aria-label=${label}
             @click=${(e: Event) => {
               e.stopPropagation();
               this._presetOverlay.setOpen(true);
@@ -1072,7 +1144,14 @@ export class BetterThermostatUINormalCard
 
   private triggerModeChange(mode: string) {
     if (!this._stateObj) return;
-    if (setClimateMode(this.hass, this._stateObj, mode)) {
+    if (
+      setClimateMode(
+        this.hass,
+        this._stateObj,
+        mode,
+        this._config?.preset_entity,
+      )
+    ) {
       this._presetOverlay.setOpen(false);
     }
   }

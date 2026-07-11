@@ -85,11 +85,20 @@ export class NormalClimateCardEditor
       ? this.hass.states[this._config.entity]
       : undefined;
     const isBt = !stateObj || isBtEntity(stateObj);
+    // Only offer colors for the presets the entity actually exposes — from
+    // the preset_entity select when configured, else the climate entity.
+    const presetEntityObj = this._config?.preset_entity
+      ? this.hass.states[this._config.preset_entity]
+      : undefined;
+    const presetModes = presetEntityObj
+      ? ((presetEntityObj.attributes.options as string[]) ?? []).join(",")
+      : stateObj
+        ? (stateObj.attributes.preset_modes ?? []).join(",")
+        : undefined;
     const schema = computeSchema(
       isBt,
       stateObj ? (stateObj.attributes.hvac_modes ?? []).join(",") : undefined,
-      // Only offer colors for the presets the TRV actually exposes.
-      stateObj ? (stateObj.attributes.preset_modes ?? []).join(",") : undefined,
+      presetModes,
     );
 
     return html`

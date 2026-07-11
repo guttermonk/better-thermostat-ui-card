@@ -63,11 +63,18 @@ export type ClimateColorsConfig = Partial<Record<ClimateColorKey, string>>;
 
 const colorVar = (key: string) => `var(--bt-color-${key.replace(/_/g, "-")})`;
 
+// Matching is case-insensitive: select-based presets (preset_entity) report
+// capitalized options ("Home", "Away") that should hit the same color slots.
 export function climateColor(mode: ClimateMode | string): string {
-  const key = (CLIMATE_COLOR_KEYS as readonly string[]).includes(mode)
-    ? mode
+  const normalized = mode.toLowerCase();
+  const key = (CLIMATE_COLOR_KEYS as readonly string[]).includes(normalized)
+    ? normalized
     : "off";
   return colorVar(key);
+}
+
+export function hasClimateColor(mode: string): boolean {
+  return (CLIMATE_COLOR_KEYS as readonly string[]).includes(mode.toLowerCase());
 }
 
 // Action → color: "idle" keeps its own color (core's --state-climate-idle);
@@ -160,6 +167,17 @@ export const CLIMATE_HVAC_ACTION_ICONS: Record<HvacAction, string> = {
 
 export function getHvacModeIcon(hvacMode: ClimateMode | string): string {
   return CLIMATE_HVAC_MODE_ICONS[hvacMode as ClimateMode] ?? "mdi:thermostat";
+}
+
+// Icon for a preset button. Case-insensitive so select-based presets
+// ("Home", "Sleep") reuse the known icons; unrecognized presets get a
+// generic icon instead of the thermostat fallback, which would collide
+// with the collapsed presets button.
+export function getPresetIcon(preset: string): string {
+  return (
+    CLIMATE_HVAC_MODE_ICONS[preset.toLowerCase() as ClimateMode] ??
+    "mdi:tune-variant"
+  );
 }
 
 export function getHvacActionIcon(hvacAction: HvacAction | string): string {

@@ -10,6 +10,8 @@ import {
   climateStateColor,
   getHvacActionIcon,
   getHvacModeIcon,
+  getPresetIcon,
+  hasClimateColor,
 } from "../src/shared/climate-colors";
 import { alphaColor, computeCssColor } from "../src/shared/color";
 
@@ -24,6 +26,19 @@ describe("climateColor", () => {
   it("unknown modes (incl. 'none') fall back to off", () => {
     expect(climateColor("none")).toBe("var(--bt-color-off)");
     expect(climateColor("something_else")).toBe("var(--bt-color-off)");
+  });
+
+  it("matches case-insensitively (select-based presets)", () => {
+    expect(climateColor("Home")).toBe("var(--bt-color-home)");
+    expect(climateColor("AWAY")).toBe("var(--bt-color-away)");
+  });
+});
+
+describe("hasClimateColor", () => {
+  it("reports known color slots case-insensitively", () => {
+    expect(hasClimateColor("home")).toBe(true);
+    expect(hasClimateColor("Sleep")).toBe(true);
+    expect(hasClimateColor("Wake")).toBe(false);
   });
 });
 
@@ -132,6 +147,12 @@ describe("icons", () => {
     expect(getHvacModeIcon("heat")).toBe("mdi:fire");
     expect(getHvacModeIcon("eco")).toBe("mdi:leaf");
     expect(getHvacModeIcon("bogus")).toBe("mdi:thermostat");
+  });
+
+  it("preset icons match case-insensitively with a generic fallback", () => {
+    expect(getPresetIcon("eco")).toBe("mdi:leaf");
+    expect(getPresetIcon("Home")).toBe("mdi:home");
+    expect(getPresetIcon("Wake")).toBe("mdi:tune-variant");
   });
 
   it("action icons, including extended actions via their implied mode", () => {

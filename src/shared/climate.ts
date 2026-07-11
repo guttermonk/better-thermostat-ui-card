@@ -62,13 +62,67 @@ export type BtClimateEntity = Omit<ClimateEntity, "attributes"> & {
   attributes: BtClimateAttributes;
 };
 
+// Presets normally come from the climate entity's own preset_modes. Some
+// integrations expose comfort profiles as a separate select entity instead
+// (e.g. ecobee via HomeKit: select.*_current_mode) — the `preset_entity`
+// card config points at it, and then it fully replaces the climate presets.
+
+export function getPresetModes(
+  hass: HomeAssistant,
+  stateObj: BtClimateEntity,
+  presetEntity?: string,
+): string[] {
+  if (presetEntity) {
+    const selectObj = hass.states[presetEntity];
+    return (selectObj?.attributes?.options as string[] | undefined) ?? [];
+  }
+  return (stateObj.attributes.preset_modes ?? []).filter(
+    (p: string) => p !== "none",
+  );
+}
+
+// The active preset, or undefined when none is set. A select entity always
+// carries a value, so its state is only rejected when unavailable/unknown.
+export function getCurrentPreset(
+  hass: HomeAssistant,
+  stateObj: BtClimateEntity,
+  presetEntity?: string,
+): string | undefined {
+  if (presetEntity) {
+    const state = hass.states[presetEntity]?.state;
+    return state == null || state === UNAVAILABLE || state === UNKNOWN
+      ? undefined
+      : state;
+  }
+  const preset = stateObj.attributes.preset_mode;
+  return preset != null && preset !== "none" ? preset : undefined;
+}
+
+// Human-readable preset name for tooltips: HA's backend translation for
+// climate presets, the entity's own option formatting for select presets.
+export function getPresetDisplayName(
+  hass: HomeAssistant,
+  stateObj: BtClimateEntity,
+  mode: string,
+  presetEntity?: string,
+): string {
+  if (presetEntity) {
+    const selectObj = hass.states[presetEntity];
+    return (selectObj && hass.formatEntityState(selectObj, mode)) || mode;
+  }
+  return hass.formatEntityAttributeValue(stateObj, "preset_mode", mode) || mode;
+}
+
 // Set an hvac mode or preset by name. A name matching one of the entity's
 // hvac_modes wins; otherwise it is treated as a preset (selecting the active
-// preset again clears it back to "none"). Returns whether a service was called.
+// preset again clears it back to "none"). With a preset_entity, presets are
+// set via select_option instead — no clearing, a select always has a value.
+// Returns whether a service was called.
 export function setClimateMode(
   hass: HomeAssistant,
   stateObj: BtClimateEntity,
   mode: string,
+  presetEntity?: string,
 ): boolean {
   if (
     (stateObj.attributes.hvac_modes as string[] | undefined)?.includes(mode)
@@ -78,6 +132,16 @@ export function setClimateMode(
       hvac_mode: mode,
     });
     return true;
+  }
+  if (presetEntity) {
+    if (getPresetModes(hass, stateObj, presetEntity).includes(mode)) {
+      hass.callService(presetEntity.split(".")[0], "select_option", {
+        entity_id: presetEntity,
+        option: mode,
+      });
+      return true;
+    }
+    return false;
   }
   if (stateObj.attributes.preset_modes?.includes(mode)) {
     hass.callService("climate", "set_preset_mode", {

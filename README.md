@@ -51,6 +51,21 @@ Available keys: `auto`, `cool`, `dry`, `fan_only`, `heat`, `heat_cool`, `eco`, `
 
 Themes can override the same colors globally via the `--bt-color-<key>` CSS variables (underscores become dashes, e.g. `--bt-color-fan-only`); the legacy `--bt-state-*` RGB-triplet theme variables keep working as defaults.
 
+## Presets
+
+Both cards render the climate entity's presets (`preset_modes`) as buttons; hovering a preset button shows its name. By default the active preset is shown as a single button and the remaining presets open in a fullscreen overlay — enable **Show all presets as buttons** (`show_all_presets: true`, "Features" section in the editor) to render every preset directly on the card instead, in its own row below the HVAC mode buttons.
+
+Some integrations don't expose presets on the climate entity but as a separate select entity — e.g. an ecobee connected via HomeKit puts its comfort profiles in `select.<name>_current_mode`. Point the card at it with `preset_entity` ("External sensors" section in the editor) and its options are used as the presets:
+
+```yaml
+type: custom:better-thermostat-normal-climate-card
+entity: climate.upstairs_ecobee
+preset_entity: select.upstairs_ecobee_current_mode
+show_all_presets: true
+```
+
+Options whose (case-insensitive) name matches a known preset (`eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`) get that preset's icon and color; other options get a generic icon.
+
 ## Goals
 
 - [X] Add better_thermostat support for showing the extra status

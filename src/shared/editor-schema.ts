@@ -33,6 +33,7 @@ export const CLIMATE_LABELS: string[] = [
   "disable_eco",
   "disable_humidity",
   "disable_presets",
+  "show_all_presets",
   "disable_battery_warning",
   "disable_connection_lost_warning",
   "disable_degraded_warning",
@@ -42,6 +43,7 @@ export const CLIMATE_LABELS: string[] = [
   "low_battery_threshold",
   "window_sensor",
   "humidity_sensor",
+  "preset_entity",
   "section_display",
   "section_interaction",
   "section_features",
@@ -49,8 +51,8 @@ export const CLIMATE_LABELS: string[] = [
   "section_sensors",
 ];
 
-// External window/humidity sensors — only offered for non-BT entities, which
-// don't expose that data via attributes.
+// External window/humidity sensors and preset select — only offered for
+// non-BT entities, which don't expose that data via attributes.
 export const computeSensorsSection = (): HaFormSchema =>
   ({
     name: "section_sensors",
@@ -66,6 +68,10 @@ export const computeSensorsSection = (): HaFormSchema =>
       {
         name: "humidity_sensor",
         selector: { entity: { domain: ["sensor"], device_class: "humidity" } },
+      },
+      {
+        name: "preset_entity",
+        selector: { entity: { domain: ["select", "input_select"] } },
       },
     ],
   }) as any;
@@ -104,11 +110,16 @@ export const computeColorsSchema = memoizeOne(
             hvacModes.split(",").includes(key),
           )
     ).filter((key) => key !== "off");
+    // Case-insensitive: select-based presets (preset_entity) report
+    // capitalized options ("Home", "Away").
     const presetSlots =
       presetModes === undefined
         ? [...CLIMATE_PRESET_COLOR_KEYS]
         : CLIMATE_PRESET_COLOR_KEYS.filter((key) =>
-            presetModes.split(",").includes(key),
+            presetModes
+              .split(",")
+              .map((p) => p.toLowerCase())
+              .includes(key),
           );
     return {
       name: "colors",
@@ -188,6 +199,7 @@ export const computeFeaturesSection = (): HaFormSchema =>
           { name: "disable_eco", selector: { boolean: {} } },
           { name: "disable_humidity", selector: { boolean: {} } },
           { name: "disable_presets", selector: { boolean: {} } },
+          { name: "show_all_presets", selector: { boolean: {} } },
         ],
       },
     ],

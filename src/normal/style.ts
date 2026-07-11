@@ -350,6 +350,17 @@ export const ShadowStyles = css`
     align-items: center;
   }
 
+  /* show_all_presets: dedicated preset row below the mode buttons. */
+  .preset-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
   /* Base overlay skeleton comes from the shared presetOverlayStyle. */
   .preset-select {
     justify-content: center;
