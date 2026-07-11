@@ -1486,9 +1486,18 @@ const{I:Hh}=de,Dh=()=>document.createComment(""),Nh=(e,t,o)=>{const i=e._$AA.par
      that band. Deliberately NOT a negative margin on the wrapper: the dial
      is sized from .container's observed height, so shrinking the container
      would shrink the dial in a feedback loop. The % resolves against the
-     card width; max() caps it once the card is wider than the 320px dial. */
+     card width; max() caps it once the card is wider than the 320px dial.
+     The overlapped .actions must be lifted above the positioned .container
+     (which otherwise hit-tests first and eats the clicks), while its own
+     empty space stays click-through for the slider arc underneath. */
   ha-card.no-buttons .actions {
     margin-top: max(-45px, -14%);
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+  }
+  ha-card.no-buttons .actions > * {
+    pointer-events: auto;
   }
 
   .dual {
