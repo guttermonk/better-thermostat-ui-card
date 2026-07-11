@@ -4,7 +4,6 @@ import {
   mdiGestureTap,
   mdiPalette,
   mdiTune,
-  mdiTuneVariant,
   mdiWindowOpenVariant,
 } from "@mdi/js";
 import memoizeOne from "memoize-one";
@@ -52,105 +51,27 @@ export const CLIMATE_LABELS: string[] = [
   "section_features",
   "section_warnings",
   "section_sensors",
-  "section_presets",
 ];
 
-// Synthetic per-preset editor fields: `preset_show_<name>` (visibility
-// toggle) and `preset_icon_<name>` (icon override). They only exist in the
-// form — the editors translate them from/to the `preset_options` config
-// object in .data / value-changed.
-export const PRESET_SHOW_PREFIX = "preset_show_";
-export const PRESET_ICON_PREFIX = "preset_icon_";
-
-const splitPresets = (presetModes?: string): string[] =>
+// The detected presets behind a joined presetModes string (the same string
+// the colors schema receives), minus the "none" placeholder.
+export const splitPresets = (presetModes?: string): string[] =>
   (presetModes ?? "").split(",").filter((p) => p && p !== "none");
 
-// One show-toggle + icon-picker pair per detected preset. `presetModes` is
-// the raw joined list (same string the colors schema gets); no section is
-// rendered when no presets are detected.
-export const computePresetsSection = memoizeOne(
-  (presetModes?: string): HaFormSchema[] => {
-    const presets = splitPresets(presetModes);
-    if (presets.length === 0) return [];
-    return [
-      {
-        name: "section_presets",
-        type: "expandable",
-        flatten: true,
-        iconPath: mdiTuneVariant,
-        schema: [
-          {
-            type: "grid",
-            name: "",
-            schema: presets.flatMap((preset) => [
-              {
-                name: `${PRESET_SHOW_PREFIX}${preset}`,
-                selector: { boolean: {} },
-              },
-              {
-                name: `${PRESET_ICON_PREFIX}${preset}`,
-                selector: { icon: {} },
-              },
-            ]),
-          },
-        ],
-      } as any,
-    ];
-  },
-);
-
-// Synthetic form values for .data: visibility defaults to shown.
-export const computePresetFields = (
-  presetModes: string | undefined,
-  presetOptions?: Record<string, PresetDisplayOptions>,
-): Record<string, unknown> => {
-  const fields: Record<string, unknown> = {};
-  for (const preset of splitPresets(presetModes)) {
-    fields[`${PRESET_SHOW_PREFIX}${preset}`] =
-      !presetOptions?.[preset]?.hidden;
-    fields[`${PRESET_ICON_PREFIX}${preset}`] = presetOptions?.[preset]?.icon;
-  }
-  return fields;
-};
-
-// Strip the synthetic per-preset fields from an emitted form value and fold
-// them back into the `preset_options` config object. Entries with default
-// values (shown, no icon) are dropped, as is an empty preset_options.
-// Mutates and returns `value`.
-export function extractPresetOptions<
-  T extends {
-    preset_options?: Record<string, PresetDisplayOptions>;
-  } & Record<string, unknown>,
->(value: T): T {
-  const options: Record<string, PresetDisplayOptions> = {
-    ...value.preset_options,
-  };
-  for (const key of Object.keys(value)) {
-    let preset: string | undefined;
-    let patch: PresetDisplayOptions | undefined;
-    if (key.startsWith(PRESET_SHOW_PREFIX)) {
-      preset = key.slice(PRESET_SHOW_PREFIX.length);
-      patch = { hidden: value[key] === false ? true : undefined };
-    } else if (key.startsWith(PRESET_ICON_PREFIX)) {
-      preset = key.slice(PRESET_ICON_PREFIX.length);
-      patch = { icon: (value[key] as string) || undefined };
-    }
-    if (preset === undefined) continue;
-    const entry = { ...options[preset], ...patch };
-    if (!entry.hidden) delete entry.hidden;
-    if (!entry.icon) delete entry.icon;
-    options[preset] = entry;
-    delete value[key];
-  }
+// Drop preset_options entries that are back to defaults (shown, no icon);
+// returns undefined when nothing is customized so the key can be removed
+// from the YAML entirely.
+export function prunePresetOptions(
+  options: Record<string, PresetDisplayOptions>,
+): Record<string, PresetDisplayOptions> | undefined {
+  const pruned: Record<string, PresetDisplayOptions> = {};
   for (const [preset, entry] of Object.entries(options)) {
-    if (!entry.hidden && !entry.icon) delete options[preset];
+    const clean: PresetDisplayOptions = {};
+    if (entry.hidden) clean.hidden = true;
+    if (entry.icon) clean.icon = entry.icon;
+    if (Object.keys(clean).length > 0) pruned[preset] = clean;
   }
-  if (Object.keys(options).length > 0) {
-    value.preset_options = options;
-  } else {
-    delete value.preset_options;
-  }
-  return value;
+  return Object.keys(pruned).length > 0 ? pruned : undefined;
 }
 
 // External window/humidity sensors and preset select — only offered for

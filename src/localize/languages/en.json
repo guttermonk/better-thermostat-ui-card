@@ -40,7 +40,6 @@
         "section_sensors": "External sensors",
         "section_presets": "Presets",
         "preset_show": "Show {preset}",
-        "preset_icon": "{preset} icon",
         "window_sensor": "Window sensor",
         "humidity_sensor": "Humidity sensor",
         "preset_entity": "Preset select entity",

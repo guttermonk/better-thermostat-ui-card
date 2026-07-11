@@ -44,6 +44,8 @@ export type SharedBtCardConfig = {
   preset_entity?: string;
   // Per-preset display settings, keyed by the raw preset/option name.
   preset_options?: Record<string, PresetDisplayOptions>;
+  // Button order: listed presets first, unlisted ones follow as detected.
+  preset_order?: string[];
 };
 
 export const sharedBtConfigStruct = object({
@@ -79,4 +81,5 @@ export const sharedBtConfigStruct = object({
       }),
     ),
   ),
+  preset_order: optional(array(string())),
 });

@@ -91,18 +91,36 @@ export type PresetDisplayOptions = { hidden?: boolean; icon?: string };
 // integration silently drops.
 export const PRESET_PENDING_TIMEOUT_MS = 45000;
 
+// Order presets by the `preset_order` card config: listed names first in the
+// given order, unlisted ones appended in their detected order.
+export function orderPresetModes(
+  presets: string[],
+  order?: string[],
+): string[] {
+  if (!order?.length) return presets;
+  const index = new Map(order.map((preset, i) => [preset, i]));
+  return [...presets].sort(
+    (a, b) =>
+      (index.get(a) ?? order.length) - (index.get(b) ?? order.length),
+  );
+}
+
 // The presets the cards actually render: the detected list minus the ones
-// hidden via preset_options.
+// hidden via preset_options, ordered by preset_order.
 export function getVisiblePresetModes(
   hass: HomeAssistant,
   stateObj: BtClimateEntity,
   config: {
     preset_entity?: string;
     preset_options?: Record<string, PresetDisplayOptions>;
+    preset_order?: string[];
   },
 ): string[] {
-  return getPresetModes(hass, stateObj, config.preset_entity).filter(
-    (mode) => !config.preset_options?.[mode]?.hidden,
+  return orderPresetModes(
+    getPresetModes(hass, stateObj, config.preset_entity).filter(
+      (mode) => !config.preset_options?.[mode]?.hidden,
+    ),
+    config.preset_order,
   );
 }
 

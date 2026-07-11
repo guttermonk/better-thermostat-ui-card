@@ -5,6 +5,7 @@ import {
   getPresetDisplayName,
   getPresetModes,
   getVisiblePresetModes,
+  orderPresetModes,
   setClimateMode,
   supportsFeature,
   supportsFeatureFromAttributes,
@@ -235,6 +236,27 @@ describe("preset source helpers", () => {
       "eco",
       "boost",
     ]);
+  });
+
+  it("orderPresetModes sorts by preset_order, unlisted last in place", () => {
+    expect(
+      orderPresetModes(["Home", "Away", "Sleep"], ["Sleep", "Home"]),
+    ).toEqual(["Sleep", "Home", "Away"]);
+    // No order configured: untouched.
+    expect(orderPresetModes(["a", "b"], undefined)).toEqual(["a", "b"]);
+    expect(orderPresetModes(["a", "b"], [])).toEqual(["a", "b"]);
+    // Stale names in the order are ignored gracefully.
+    expect(orderPresetModes(["a", "b"], ["gone", "b"])).toEqual(["b", "a"]);
+  });
+
+  it("getVisiblePresetModes applies preset_order after filtering", () => {
+    const stateObj = entity({ preset_modes: ["none", "eco", "boost", "away"] });
+    expect(
+      getVisiblePresetModes({} as any, stateObj, {
+        preset_options: { boost: { hidden: true } },
+        preset_order: ["away", "eco"],
+      }),
+    ).toEqual(["away", "eco"]);
   });
 
   it("getPresetDisplayName falls back to the raw mode name", () => {

@@ -73,7 +73,7 @@ show_all_presets: true
 
 Options whose (case-insensitive) name matches a known preset (`eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`) get that preset's icon and color; other options get a generic icon.
 
-The editor's **Presets** section lists every detected preset with a show/hide toggle and an icon picker. In YAML this is the `preset_options` object, keyed by the raw preset/option name:
+The editor's **Presets** section lists every detected preset with a drag handle to reorder the buttons, a show/hide toggle and an icon picker. In YAML this is the `preset_options` object (keyed by the raw preset/option name) plus the `preset_order` list — presets missing from the list are appended in their detected order:
 
 ```yaml
 preset_options:
@@ -81,6 +81,10 @@ preset_options:
     icon: mdi:leaf-circle
   Away:
     hidden: true
+preset_order:
+  - Home
+  - Sleep
+  - Away
 ```
 
 ## Goals

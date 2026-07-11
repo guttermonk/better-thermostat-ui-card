@@ -1,6 +1,7 @@
 import { css, CSSResultGroup, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import memoizeOne from "memoize-one";
+import { mdiTuneVariant } from "@mdi/js";
 import { fireEvent, LovelaceCardEditor } from "mushroom-cards/src/ha";
 import { computeActionsFormSchema } from "mushroom-cards/src/shared/config/actions-config";
 import { APPEARANCE_FORM_SCHEMA } from "mushroom-cards/src/shared/config/appearance-config";
@@ -11,25 +12,30 @@ import { loadHaComponents } from "mushroom-cards/src/utils/loader";
 import { BetterThermostatUISmallCardConfig } from "./climate-card-config";
 import { CLIMATE_CARD_EDITOR_NAME, CLIMATE_ENTITY_DOMAINS } from "./const";
 import { isBtEntity } from "../shared/bt";
-import { getPresetDisplayName } from "../shared/climate";
+import {
+  PresetDisplayOptions,
+  getPresetDisplayName,
+  orderPresetModes,
+} from "../shared/climate";
 import { createChainedLocalize } from "../shared/localize";
 import {
   CLIMATE_LABELS,
-  PRESET_ICON_PREFIX,
-  PRESET_SHOW_PREFIX,
   computeColorLabel,
   computeColorsSchema,
   computeDisplaySection,
   computeFeaturesSection,
   computeInteractionSection,
-  computePresetFields,
-  computePresetsSection,
   computeSensorsSection,
   computeWarningsSection,
-  extractPresetOptions,
+  prunePresetOptions,
+  splitPresets,
 } from "../shared/editor-schema";
+import "../shared/presets-editor";
 
-const computeSchema = memoizeOne(
+// The form is split in two around the custom presets panel (ha-form cannot
+// host the drag-and-drop rows). Both halves are bound to the same data and
+// the same value-changed handler.
+const computeSchemaBefore = memoizeOne(
   (
     isBt: boolean,
     hvacModes?: string,
@@ -59,14 +65,16 @@ const computeSchema = memoizeOne(
       presetSourceLabel,
       hvacSourceLabel,
     ),
-    ...computePresetsSection(presetModes),
-    computeInteractionSection(),
-    computeFeaturesSection(),
-    // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
-    ...(isBt ? [computeWarningsSection(true)] : []),
-    ...computeActionsFormSchema(),
   ],
 );
+
+const computeSchemaAfter = memoizeOne((isBt: boolean): HaFormSchema[] => [
+  computeInteractionSection(),
+  computeFeaturesSection(),
+  // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
+  ...(isBt ? [computeWarningsSection(true)] : []),
+  ...computeActionsFormSchema(),
+]);
 
 @customElement(CLIMATE_CARD_EDITOR_NAME)
 export class ClimateCardEditor
@@ -88,6 +96,18 @@ export class ClimateCardEditor
           display: block;
           margin-bottom: 16px;
         }
+        ha-expansion-panel.section-presets {
+          display: block;
+          margin: 24px 0;
+        }
+        .section-presets .section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .section-presets .content {
+          padding: 16px 8px 4px;
+        }
       `,
     ];
   }
@@ -107,29 +127,25 @@ export class ClimateCardEditor
       : undefined;
   }
 
+  // Joined preset list for the colors schema and the presets panel — from
+  // the preset_entity select when configured, else the climate entity.
+  private get _presetModesString(): string | undefined {
+    const presetEntityObj = this._config?.preset_entity
+      ? this.hass?.states[this._config.preset_entity]
+      : undefined;
+    if (presetEntityObj) {
+      return ((presetEntityObj.attributes.options as string[]) ?? []).join(
+        ",",
+      );
+    }
+    const stateObj = this._stateObj;
+    return stateObj
+      ? (stateObj.attributes.preset_modes ?? []).join(",")
+      : undefined;
+  }
+
   private _computeLabel = (schema: HaFormSchema) => {
     const localize = createChainedLocalize(this.hass!);
-    if (
-      schema.name.startsWith(PRESET_SHOW_PREFIX) ||
-      schema.name.startsWith(PRESET_ICON_PREFIX)
-    ) {
-      const isShow = schema.name.startsWith(PRESET_SHOW_PREFIX);
-      const preset = schema.name.slice(
-        (isShow ? PRESET_SHOW_PREFIX : PRESET_ICON_PREFIX).length,
-      );
-      const stateObj = this._stateObj;
-      const presetName = stateObj
-        ? getPresetDisplayName(
-            this.hass!,
-            stateObj as any,
-            preset,
-            this._config?.preset_entity,
-          )
-        : preset;
-      return localize(
-        `editor.card.climate.${isShow ? "preset_show" : "preset_icon"}`,
-      ).replace("{preset}", presetName);
-    }
     if (schema.name === "colors") {
       return localize("editor.card.climate.section_colors");
     }
@@ -170,24 +186,21 @@ export class ClimateCardEditor
     const stateObj = this._stateObj;
     const isBt = stateObj ? isBtEntity(stateObj) : false;
     const entityMissing = !stateObj && !!this._config.entity;
-    // Only offer colors for the presets the entity actually exposes — from
-    // the preset_entity select when configured, else the climate entity.
-    const presetEntityObj = this._config.preset_entity
-      ? this.hass.states[this._config.preset_entity]
-      : undefined;
-    const presetModes = presetEntityObj
-      ? ((presetEntityObj.attributes.options as string[]) ?? []).join(",")
-      : stateObj
-        ? (stateObj.attributes.preset_modes ?? []).join(",")
-        : undefined;
+    const presetModes = this._presetModesString;
     const localize = createChainedLocalize(this.hass);
-    const schema = computeSchema(
+    const schemaBefore = computeSchemaBefore(
       isBt,
       stateObj ? (stateObj.attributes.hvac_modes ?? []).join(",") : undefined,
       presetModes,
       localize("editor.card.climate.color_source_preset"),
       localize("editor.card.climate.color_source_hvac"),
     );
+    const schemaAfter = computeSchemaAfter(isBt);
+    const orderedPresets = orderPresetModes(
+      splitPresets(presetModes),
+      this._config.preset_order,
+    );
+    const data = { low_battery_threshold: 10, ...this._config };
 
     return html`
       ${entityMissing
@@ -203,20 +216,52 @@ export class ClimateCardEditor
       ${stateObj && !isBt
         ? html`
             <ha-alert alert-type="info">
-              ${createChainedLocalize(this.hass)(
-                "editor.card.climate.not_bt_info",
-              )}
+              ${localize("editor.card.climate.not_bt_info")}
             </ha-alert>
           `
         : nothing}
       <ha-form
         .hass=${this.hass}
-        .data=${{
-          low_battery_threshold: 10,
-          ...this._config,
-          ...computePresetFields(presetModes, this._config.preset_options),
-        }}
-        .schema=${schema}
+        .data=${data}
+        .schema=${schemaBefore}
+        .computeLabel=${this._computeLabel}
+        .computeHelper=${this._computeHelper}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+      ${orderedPresets.length
+        ? html`
+            <ha-expansion-panel outlined class="section-presets">
+              <div slot="header" class="section-header">
+                <ha-svg-icon .path=${mdiTuneVariant}></ha-svg-icon>
+                ${localize("editor.card.climate.section_presets")}
+              </div>
+              <div class="content">
+                <bt-presets-editor
+                  .hass=${this.hass}
+                  .presets=${orderedPresets}
+                  .options=${this._config.preset_options}
+                  .getLabel=${(preset: string) =>
+                    stateObj
+                      ? getPresetDisplayName(
+                          this.hass!,
+                          stateObj as any,
+                          preset,
+                          this._config?.preset_entity,
+                        )
+                      : preset}
+                  .showLabelTemplate=${localize(
+                    "editor.card.climate.preset_show",
+                  )}
+                  @bt-presets-changed=${this._presetsChanged}
+                ></bt-presets-editor>
+              </div>
+            </ha-expansion-panel>
+          `
+        : nothing}
+      <ha-form
+        .hass=${this.hass}
+        .data=${data}
+        .schema=${schemaAfter}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
@@ -224,10 +269,34 @@ export class ClimateCardEditor
     `;
   }
 
+  private _presetsChanged(
+    ev: CustomEvent<{
+      order: string[];
+      options: Record<string, PresetDisplayOptions>;
+    }>,
+  ) {
+    ev.stopPropagation();
+    if (!this._config) return;
+    const value = { ...this._config };
+    const pruned = prunePresetOptions(ev.detail.options);
+    if (pruned) {
+      value.preset_options = pruned;
+    } else {
+      delete value.preset_options;
+    }
+    // Only persist an order that differs from the detected one.
+    const natural = splitPresets(this._presetModesString);
+    if (ev.detail.order.join(" ") !== natural.join(" ")) {
+      value.preset_order = ev.detail.order;
+    } else {
+      delete value.preset_order;
+    }
+    this._config = value;
+    fireEvent(this, "config-changed", { config: value });
+  }
+
   private _valueChanged(ev: CustomEvent): void {
-    const value = extractPresetOptions({
-      ...(ev.detail.value as BetterThermostatUISmallCardConfig),
-    });
+    const value = { ...(ev.detail.value as BetterThermostatUISmallCardConfig) };
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.
     if (value.colors) {

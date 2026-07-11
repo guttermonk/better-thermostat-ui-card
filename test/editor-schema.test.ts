@@ -1,9 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   computeColorsSchema,
-  computePresetFields,
-  computePresetsSection,
-  extractPresetOptions,
+  prunePresetOptions,
+  splitPresets,
 } from "../src/shared/editor-schema";
 
 const pickerNames = (schema: any): string[] =>
@@ -73,68 +72,22 @@ describe("computeColorsSchema", () => {
   });
 });
 
-describe("presets section", () => {
-  it("emits a show toggle and icon picker per preset, skipping 'none'", () => {
-    const [section] = computePresetsSection("none,eco,Away") as any[];
-    expect(section.name).toBe("section_presets");
-    expect(
-      section.schema[0].schema.map((f: { name: string }) => f.name),
-    ).toEqual([
-      "preset_show_eco",
-      "preset_icon_eco",
-      "preset_show_Away",
-      "preset_icon_Away",
-    ]);
+describe("presets panel helpers", () => {
+  it("splitPresets parses the joined list, skipping 'none'", () => {
+    expect(splitPresets("none,eco,Away")).toEqual(["eco", "Away"]);
+    expect(splitPresets(undefined)).toEqual([]);
+    expect(splitPresets("")).toEqual([]);
   });
 
-  it("renders no section without presets", () => {
-    expect(computePresetsSection(undefined)).toEqual([]);
-    expect(computePresetsSection("none")).toEqual([]);
-  });
-
-  it("computePresetFields defaults to shown and mirrors stored options", () => {
+  it("prunePresetOptions drops default entries and empty objects", () => {
     expect(
-      computePresetFields("eco,Away", {
-        Away: { hidden: true, icon: "mdi:door" },
+      prunePresetOptions({
+        eco: { hidden: true, icon: "mdi:leaf-circle" },
+        Away: {},
+        Home: { hidden: undefined, icon: "" },
       }),
-    ).toEqual({
-      preset_show_eco: true,
-      preset_icon_eco: undefined,
-      preset_show_Away: false,
-      preset_icon_Away: "mdi:door",
-    });
-  });
-
-  it("extractPresetOptions folds synthetic fields into preset_options", () => {
-    const value = extractPresetOptions({
-      entity: "climate.x",
-      preset_show_eco: false,
-      preset_icon_eco: "mdi:leaf-circle",
-      preset_show_Away: true,
-      preset_icon_Away: "",
-    } as any);
-    expect(value).toEqual({
-      entity: "climate.x",
-      preset_options: { eco: { hidden: true, icon: "mdi:leaf-circle" } },
-    } as any);
-  });
-
-  it("extractPresetOptions drops entries reset to defaults", () => {
-    const value = extractPresetOptions({
-      preset_options: { eco: { hidden: true } },
-      preset_show_eco: true,
-    } as any);
-    expect(value).toEqual({} as any);
-  });
-
-  it("extractPresetOptions keeps options for undetected presets", () => {
-    const value = extractPresetOptions({
-      preset_options: { vacation: { hidden: true } },
-      preset_show_eco: false,
-    } as any);
-    expect(value.preset_options).toEqual({
-      vacation: { hidden: true },
-      eco: { hidden: true },
-    });
+    ).toEqual({ eco: { hidden: true, icon: "mdi:leaf-circle" } });
+    expect(prunePresetOptions({ eco: {} })).toBeUndefined();
+    expect(prunePresetOptions({})).toBeUndefined();
   });
 });
