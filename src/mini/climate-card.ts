@@ -37,6 +37,7 @@ import "./controls/climate-temperature-control";
 import { isTemperatureControlVisible } from "./controls/climate-temperature-control";
 import {
   BtClimateEntity,
+  PRESET_PENDING_TIMEOUT_MS,
   getCurrentPreset,
   getPresetDisplayName,
   getVisiblePresetModes,
@@ -104,6 +105,12 @@ export class BetterThermostatUISmallCard
 
   @state() private _activeControl?: ClimateCardControl;
   private _presetOverlay = new PresetOverlayController(this);
+  // Preset whose service call is in flight (spinner on its button), plus the
+  // preset that was active at click time — any change away from it means the
+  // round trip finished (including toggle-off back to "none").
+  @state() private _pendingPreset?: string;
+  private _pendingFromPreset?: string;
+  private _pendingPresetTimer?: number;
 
   private get _controls(): ClimateCardControl[] {
     if (!this._config || !this._stateObj) return [];
@@ -148,6 +155,44 @@ export class BetterThermostatUISmallCard
     super.updated(changedProperties);
     if (this.hass && changedProperties.has("hass")) {
       this.updateActiveControl();
+    }
+  }
+
+  protected willUpdate(changed: PropertyValues) {
+    super.willUpdate(changed);
+    if (changed.has("hass")) {
+      this._clearPresetPendingIfSettled();
+    }
+  }
+
+  disconnectedCallback() {
+    window.clearTimeout(this._pendingPresetTimer);
+    super.disconnectedCallback();
+  }
+
+  private _startPresetPending(mode: string) {
+    this._pendingFromPreset = getCurrentPreset(
+      this.hass,
+      this._stateObj!,
+      this._config?.preset_entity,
+    );
+    this._pendingPreset = mode;
+    window.clearTimeout(this._pendingPresetTimer);
+    this._pendingPresetTimer = window.setTimeout(() => {
+      this._pendingPreset = undefined;
+    }, PRESET_PENDING_TIMEOUT_MS);
+  }
+
+  private _clearPresetPendingIfSettled() {
+    if (this._pendingPreset === undefined || !this._stateObj) return;
+    const current = getCurrentPreset(
+      this.hass,
+      this._stateObj,
+      this._config?.preset_entity,
+    );
+    if (current !== this._pendingFromPreset) {
+      window.clearTimeout(this._pendingPresetTimer);
+      this._pendingPreset = undefined;
     }
   }
 
@@ -345,13 +390,15 @@ export class BetterThermostatUISmallCard
   }
 
   // One preset as a button: used both in the fullscreen overlay and the
-  // show_all_presets inline row. The active preset is highlighted.
+  // show_all_presets inline row. The active preset is highlighted; a pending
+  // service call replaces the icon with a spinner.
   private renderPresetButton(
     entity: BtClimateEntity,
     mode: string,
     currentPreset?: string,
   ) {
     const active = mode === currentPreset;
+    const pending = mode === this._pendingPreset;
     const color = active ? climateColor(mode) : "var(--bt-color-grey)";
     const iconStyle: StyleInfo = {
       "--icon-color": color,
@@ -378,7 +425,10 @@ export class BetterThermostatUISmallCard
           }
         }}
       >
-        <ha-icon .icon=${this._presetIcon(mode)}></ha-icon>
+        <ha-icon
+          class=${classMap({ "bt-pending": pending })}
+          .icon=${pending ? "mdi:loading" : this._presetIcon(mode)}
+        ></ha-icon>
       </mushroom-button>
     `;
   }
@@ -663,8 +713,12 @@ export class BetterThermostatUISmallCard
       iconStyle["--icon-color"] = color;
       iconStyle["--bg-color"] = alphaColor(color, 0.2);
     }
-    const icon =
-      currentPreset != null
+    // The collapsed button also carries the pending spinner — after the
+    // overlay closes it is the only preset UI still visible.
+    const pending = this._pendingPreset != null;
+    const icon = pending
+      ? "mdi:loading"
+      : currentPreset != null
         ? this._presetIcon(currentPreset)
         : getHvacModeIcon("none");
     const label =
@@ -695,7 +749,10 @@ export class BetterThermostatUISmallCard
             }
           }}
         >
-          <ha-icon .icon=${this._presetIcon(presets[0])}></ha-icon>
+          <ha-icon
+            class=${classMap({ "bt-pending": pending })}
+            .icon=${pending ? "mdi:loading" : this._presetIcon(presets[0])}
+          ></ha-icon>
         </mushroom-button>
       `;
     }
@@ -711,7 +768,10 @@ export class BetterThermostatUISmallCard
           this._presetOverlay.setOpen(true);
         }}
       >
-        <ha-icon .icon=${icon}></ha-icon>
+        <ha-icon
+          class=${classMap({ "bt-pending": pending })}
+          .icon=${icon}
+        ></ha-icon>
       </mushroom-button>
     `;
   }
@@ -719,11 +779,17 @@ export class BetterThermostatUISmallCard
   private triggerModeChange(mode: string) {
     const stateObj = this._stateObj;
     if (!stateObj) return;
-    if (
-      setClimateMode(this.hass, stateObj, mode, this._config?.preset_entity)
-    ) {
-      this._presetOverlay.setOpen(false);
+    const result = setClimateMode(
+      this.hass,
+      stateObj,
+      mode,
+      this._config?.preset_entity,
+    );
+    if (!result) return;
+    if (result === "preset") {
+      this._startPresetPending(mode);
     }
+    this._presetOverlay.setOpen(false);
   }
 
   private renderActiveControl(entity: BtClimateEntity) {

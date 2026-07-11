@@ -79,7 +79,7 @@ describe("setClimateMode", () => {
       entity({ hvac_modes: ["heat", "off"] }),
       "off",
     );
-    expect(handled).toBe(true);
+    expect(handled).toBe("hvac");
     expect(callService).toHaveBeenCalledWith("climate", "set_hvac_mode", {
       entity_id: "climate.test",
       hvac_mode: "off",
@@ -93,7 +93,7 @@ describe("setClimateMode", () => {
       preset_modes: ["eco", "boost"],
       preset_mode: "none",
     });
-    expect(setClimateMode(hass, stateObj, "eco")).toBe(true);
+    expect(setClimateMode(hass, stateObj, "eco")).toBe("preset");
     expect(callService).toHaveBeenCalledWith("climate", "set_preset_mode", {
       entity_id: "climate.test",
       preset_mode: "eco",
@@ -103,7 +103,7 @@ describe("setClimateMode", () => {
   it("selecting the active preset clears it back to none", () => {
     const { hass, callService } = makeHass();
     const stateObj = entity({ preset_modes: ["eco"], preset_mode: "eco" });
-    expect(setClimateMode(hass, stateObj, "eco")).toBe(true);
+    expect(setClimateMode(hass, stateObj, "eco")).toBe("preset");
     expect(callService).toHaveBeenCalledWith("climate", "set_preset_mode", {
       entity_id: "climate.test",
       preset_mode: "none",
@@ -123,7 +123,7 @@ describe("setClimateMode", () => {
     hass.callService = mock(() => {});
     const stateObj = entity({ hvac_modes: ["heat", "off"] });
     expect(setClimateMode(hass, stateObj, "Away", "select.eco_mode")).toBe(
-      true,
+      "preset",
     );
     expect(hass.callService).toHaveBeenCalledWith("select", "select_option", {
       entity_id: "select.eco_mode",
@@ -139,7 +139,9 @@ describe("setClimateMode", () => {
       // Climate presets must be ignored while a preset_entity is configured.
       preset_modes: ["eco"],
     });
-    expect(setClimateMode(hass, stateObj, "off", "select.eco_mode")).toBe(true);
+    expect(setClimateMode(hass, stateObj, "off", "select.eco_mode")).toBe(
+      "hvac",
+    );
     expect(hass.callService).toHaveBeenCalledWith("climate", "set_hvac_mode", {
       entity_id: "climate.test",
       hvac_mode: "off",
@@ -163,7 +165,7 @@ describe("setClimateMode", () => {
     } as any;
     expect(
       setClimateMode(hass, entity({}), "Night", "input_select.modes"),
-    ).toBe(true);
+    ).toBe("preset");
     expect(hass.callService).toHaveBeenCalledWith(
       "input_select",
       "select_option",

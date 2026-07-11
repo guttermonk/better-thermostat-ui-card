@@ -35,6 +35,22 @@ export const btAnimationsStyle = css`
     animation: bt-fade-in 300ms ease-out both;
   }
 
+  /* Spinner shown on a preset button while its service call round-trips
+     (slow integrations, e.g. ecobee via HomeKit, can take 20-30 s). */
+  @keyframes bt-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  ha-icon.bt-pending {
+    display: inline-flex;
+    animation: bt-spin 1s linear infinite;
+  }
+
   .info,
   .label,
   .state,
@@ -62,6 +78,8 @@ export const btAnimationsStyle = css`
     ha-card {
       animation: none;
     }
+    /* Keep the pending spinner: it carries state, not decoration — a static
+       mdi:loading glyph would just look broken. */
     .info,
     .label,
     .state,

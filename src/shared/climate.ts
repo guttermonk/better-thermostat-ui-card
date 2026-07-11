@@ -85,6 +85,12 @@ export function getPresetModes(
 // keyed by the raw preset/option name.
 export type PresetDisplayOptions = { hidden?: boolean; icon?: string };
 
+// A preset service call can take a long round trip (e.g. ecobee via HomeKit:
+// 20-30 s). The clicked preset button shows a spinner until the entity's
+// preset actually changes; the timeout is the safety net for calls the
+// integration silently drops.
+export const PRESET_PENDING_TIMEOUT_MS = 45000;
+
 // The presets the cards actually render: the detected list minus the ones
 // hidden via preset_options.
 export function getVisiblePresetModes(
@@ -136,13 +142,14 @@ export function getPresetDisplayName(
 // hvac_modes wins; otherwise it is treated as a preset (selecting the active
 // preset again clears it back to "none"). With a preset_entity, presets are
 // set via select_option instead — no clearing, a select always has a value.
-// Returns whether a service was called.
+// Returns which kind of service was called (truthy) or false — the cards use
+// "preset" to start the pending-spinner on the clicked button.
 export function setClimateMode(
   hass: HomeAssistant,
   stateObj: BtClimateEntity,
   mode: string,
   presetEntity?: string,
-): boolean {
+): "hvac" | "preset" | false {
   if (
     (stateObj.attributes.hvac_modes as string[] | undefined)?.includes(mode)
   ) {
@@ -150,7 +157,7 @@ export function setClimateMode(
       entity_id: stateObj.entity_id,
       hvac_mode: mode,
     });
-    return true;
+    return "hvac";
   }
   if (presetEntity) {
     if (getPresetModes(hass, stateObj, presetEntity).includes(mode)) {
@@ -158,7 +165,7 @@ export function setClimateMode(
         entity_id: presetEntity,
         option: mode,
       });
-      return true;
+      return "preset";
     }
     return false;
   }
@@ -167,7 +174,7 @@ export function setClimateMode(
       entity_id: stateObj.entity_id,
       preset_mode: mode === stateObj.attributes.preset_mode ? "none" : mode,
     });
-    return true;
+    return "preset";
   }
   return false;
 }
