@@ -247,11 +247,14 @@ export const ShadowStyles = css`
   }
 
   /* Size breakpoints against the dial wrapper's width (it declares
-     container-name: container). Same cutoffs as HA core's circular-slider
-     state controls: lg ≥250, md ≥190, sm ≥130, xs below. Container queries
+     container-name: container). Cutoffs like HA core's circular-slider
+     state controls (md ≥190, sm ≥130, xs below), except the compact
+     typography already starts at 290px: this card stacks more info rows
+     (secondary + humidity) than core, and at full size they crowd the
+     plus/minus buttons, which stay visible down to 250px. Container queries
      instead of observer-driven classes: the class variant could keep a stale
      size when observations moved between elements. */
-  @container container (width < 250px) {
+  @container container (width < 290px) {
     ha-big-number {
       font-size: 44px;
     }
@@ -262,6 +265,9 @@ export const ShadowStyles = css`
       margin-top: 12px;
       gap: 6px;
     }
+  }
+
+  @container container (width < 250px) {
     .buttons {
       display: none;
     }
@@ -409,7 +415,9 @@ export const ShadowStyles = css`
     gap: 12px;
   }
 
-  /* show_all_presets: dedicated preset row below the mode buttons. */
+  /* show_all_presets: dedicated preset row below the mode buttons. The
+     margin separates it from that row — drop it when the presets are the
+     only actions row, or the gap under the dial doubles up. */
   .preset-row {
     display: flex;
     flex-direction: row;
@@ -418,6 +426,10 @@ export const ShadowStyles = css`
     justify-content: center;
     gap: 12px;
     margin-top: 12px;
+  }
+
+  .actions > .preset-row:first-child {
+    margin-top: 0;
   }
 
   /* Base overlay skeleton comes from the shared presetOverlayStyle. */
