@@ -585,15 +585,17 @@ export class BetterThermostatUINormalCard
       this._config.disable_buttons ||
       !(this._supportsTargetValue || this._supportsTargetRange);
     // The no-buttons overlap pulls the actions onto that band. 14% of the
-    // dial leaves ~3.5% clearance to the arcs' rounded end caps at any size;
-    // below 300px that shrinks toward button-corner contact, so give a few
-    // px of it back (a height-capped sections dial rather than the full
-    // 320px masonry one).
+    // dial leaves ~3.5% clearance to the arcs' rounded end caps at any size,
+    // minus 4px of breathing room; below 300px the proportional clearance
+    // shrinks toward button-corner contact, so give a few more px back (a
+    // height-capped sections dial rather than the full 320px masonry one).
     const dialSize = this._resizeController.value
       ? Math.min(this._resizeController.value, 320)
       : 320;
-    const overlapPx =
-      dialSize >= 300 ? 0.14 * dialSize : Math.max(0, 0.14 * dialSize - 6);
+    const overlapPx = Math.max(
+      0,
+      0.14 * dialSize - (dialSize >= 300 ? 4 : 10),
+    );
     const actionsOverlap = `${(-overlapPx).toFixed(1)}px`;
 
     return html`
