@@ -594,7 +594,7 @@ export class BetterThermostatUINormalCard
       : 320;
     const overlapPx = Math.max(
       0,
-      0.14 * dialSize - (dialSize >= 300 ? 4 : 10),
+      0.14 * dialSize - (dialSize >= 300 ? 4 : 14),
     );
     const actionsOverlap = `${(-overlapPx).toFixed(1)}px`;
 
