@@ -11,11 +11,11 @@
       "climate": {
         "disable_humidity": "Turn off the humidity display",
         "disable_eco": "Turn off the eco button",
-        "disable_presets": "Turn off the presets button",
+        "show_presets": "Show the presets button",
         "show_all_presets": "Show all presets as buttons",
         "disable_menu": "Disable menu",
         "disable_battery_warning": "Turn off the battery warning",
-        "disable_buttons": "Turn off the plus/minus buttons",
+        "show_plus_minus": "Show the plus/minus buttons",
         "show_mode_buttons": "Show mode buttons",
         "show_temperature_control": "Show temperature control",
         "collapsible_controls": "Collapsible controls",

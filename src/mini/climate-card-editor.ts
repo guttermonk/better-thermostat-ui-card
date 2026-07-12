@@ -76,7 +76,9 @@ const computeSchemaAfter = memoizeOne((isBt: boolean): HaFormSchema[] => [
   computeInteractionSection([
     { name: "show_mode_buttons" },
     { name: "disable_eco" },
-    { name: "disable_presets" },
+    // Form-only positive alias for the (unchanged) inverted disable_presets
+    // config key — mapped back in _valueChanged.
+    { name: "show_presets" },
     { name: "show_all_presets" },
   ]),
   // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
@@ -212,8 +214,10 @@ export class ClimateCardEditor
       low_battery_threshold: 10,
       ...this._config,
       // Resolves the inverted legacy disable_all_buttons key so the toggle
-      // reflects what the card actually shows.
+      // reflects what the card actually shows; show_presets presents the
+      // inverted disable_presets key positively.
       show_mode_buttons: showModeButtons(this._config),
+      show_presets: !this._config.disable_presets,
     };
 
     return html`
@@ -310,11 +314,21 @@ export class ClimateCardEditor
   }
 
   private _valueChanged(ev: CustomEvent): void {
-    const value = { ...(ev.detail.value as BetterThermostatUISmallCardConfig) };
+    const value = {
+      ...(ev.detail.value as BetterThermostatUISmallCardConfig & {
+        show_presets?: boolean;
+      }),
+    };
     // The form edits show_mode_buttons — drop the legacy inverted key so
     // stale YAML doesn't linger alongside it.
     if (value.show_mode_buttons !== undefined) {
       delete value.disable_all_buttons;
+    }
+    // show_presets is form-only: the YAML keeps the inverted disable_presets
+    // key the card reads.
+    if (value.show_presets !== undefined) {
+      value.disable_presets = !value.show_presets;
+      delete value.show_presets;
     }
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.

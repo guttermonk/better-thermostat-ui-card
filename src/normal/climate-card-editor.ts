@@ -63,8 +63,11 @@ const computeSchemaBefore = memoizeOne(
 const computeSchemaAfter = memoizeOne((isBt: boolean): HaFormSchema[] => [
   computeInteractionSection([
     { name: "show_mode_buttons" },
-    { name: "disable_buttons" },
-    { name: "disable_presets" },
+    // Form-only positive alias for the (unchanged) inverted disable_buttons
+    // config key — mapped back in _valueChanged.
+    { name: "show_plus_minus" },
+    // Same pattern for disable_presets.
+    { name: "show_presets" },
     { name: "show_all_presets" },
     { name: "disable_menu" },
     { name: "prevent_interaction_on_scroll" },
@@ -171,9 +174,11 @@ export class NormalClimateCardEditor
       // Mirror the card's effective defaults so the toggles reflect
       // reality: secondary info is shown unless explicitly disabled, and
       // setConfig() defaults disable_buttons to true. show_mode_buttons also
-      // resolves the inverted legacy disable_all_buttons key.
+      // resolves the inverted legacy disable_all_buttons key, and
+      // show_plus_minus presents disable_buttons positively.
       show_secondary: this._config?.show_secondary ?? true,
-      disable_buttons: this._config?.disable_buttons ?? true,
+      show_plus_minus: !(this._config?.disable_buttons ?? true),
+      show_presets: !this._config?.disable_presets,
       show_mode_buttons: this._config ? showModeButtons(this._config) : true,
     };
 
@@ -297,13 +302,26 @@ export class NormalClimateCardEditor
   private _valueChanged(ev: CustomEvent) {
     ev.stopPropagation();
     const value = {
-      ...(ev.detail.value as BetterThermostatUINormalCardConfig),
+      ...(ev.detail.value as BetterThermostatUINormalCardConfig & {
+        show_plus_minus?: boolean;
+        show_presets?: boolean;
+      }),
     };
     // The form edits show_mode_buttons — the legacy inverted key would
     // otherwise fight it (showModeButtons prefers the new key, but stale
     // YAML confuses readers).
     if (value.show_mode_buttons !== undefined) {
       delete value.disable_all_buttons;
+    }
+    // show_plus_minus / show_presets are form-only: the YAML keeps the
+    // inverted disable_* keys the cards read.
+    if (value.show_plus_minus !== undefined) {
+      value.disable_buttons = !value.show_plus_minus;
+      delete value.show_plus_minus;
+    }
+    if (value.show_presets !== undefined) {
+      value.disable_presets = !value.show_presets;
+      delete value.show_presets;
     }
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.
