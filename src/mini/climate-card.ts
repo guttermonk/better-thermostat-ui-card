@@ -24,6 +24,7 @@ import {
   LovelaceCardEditor,
 } from "mushroom-cards/src/ha";
 import { ensureElementLoaded } from "../shared/ensure-element-loaded";
+import { showModeButtons } from "../shared/config";
 import { computeAppearance } from "mushroom-cards/src/utils/appearance";
 import { MushroomBaseCard } from "mushroom-cards/src/utils/base-card";
 import { cardStyle } from "mushroom-cards/src/utils/card-styles";
@@ -280,11 +281,11 @@ export class BetterThermostatUISmallCard
     const rtl = computeRTL(this.hass);
 
     const isControlVisible =
-      !this._config.disable_all_buttons &&
+      showModeButtons(this._config) &&
       (!this._config.collapsible_controls || isActive(stateObj)) &&
       this._controls.length;
 
-    // Whenever the controls row is not shown (disable_all_buttons, or the
+    // Whenever the controls row is not shown (show_mode_buttons off, or the
     // entity offers no matching controls), presets must still be reachable —
     // like on the normal card — as long as they aren't disabled themselves
     // and the controls aren't collapsed.

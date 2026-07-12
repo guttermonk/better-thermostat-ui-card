@@ -119,6 +119,13 @@ export const ShadowStyles = css`
     min-height: 0;
   }
 
+  /* Like the HA core thermostat card: if the dial ever exceeds the container
+     (a transient before the measured height cap applies), clip it rather
+     than let it paint over the title and actions. */
+  ha-card > .container {
+    overflow: hidden;
+  }
+
   .container > .bt-wrapper {
     width: 100%;
     max-width: 320px;
@@ -225,59 +232,56 @@ export const ShadowStyles = css`
     pointer-events: auto;
   }
 
-  .container.md ha-big-number {
-    font-size: 44px;
-  }
-  .container.md .state {
-    font-size: var(--ha-font-size-3xl);
-  }
-  .container.md .info {
-    margin-top: 12px;
-    gap: 6px;
-  }
-  .container.md .buttons {
-    display: none;
-  }
-  .container.md ha-control-circular-slider {
-    margin-bottom: -16px;
-  }
-
-  .container.sm ha-big-number {
-    font-size: var(--ha-font-size-4xl);
-  }
-  .container.sm .state {
-    font-size: var(--ha-font-size-2xl);
-  }
-  .container.sm .info {
-    margin-top: 12px;
-    font-size: var(--ha-font-size-m);
-    gap: 2px;
-    --mdc-icon-size: 14px;
-  }
-  .container.sm .buttons {
-    display: none;
-  }
-  .container.sm ha-control-circular-slider {
-    margin-bottom: -16px;
+  /* Size breakpoints against the dial wrapper's width (it declares
+     container-name: container). Same cutoffs as HA core's circular-slider
+     state controls: lg ≥250, md ≥190, sm ≥130, xs below. Container queries
+     instead of observer-driven classes: the class variant could keep a stale
+     size when observations moved between elements. */
+  @container container (width < 250px) {
+    ha-big-number {
+      font-size: 44px;
+    }
+    .state {
+      font-size: var(--ha-font-size-3xl);
+    }
+    .info {
+      margin-top: 12px;
+      gap: 6px;
+    }
+    .buttons {
+      display: none;
+    }
+    ha-control-circular-slider {
+      margin-bottom: -16px;
+    }
   }
 
-  .container.xs ha-big-number {
-    font-size: var(--ha-font-size-4xl);
+  @container container (width < 190px) {
+    ha-big-number {
+      font-size: var(--ha-font-size-4xl);
+    }
+    .state {
+      font-size: var(--ha-font-size-2xl);
+    }
+    .info {
+      font-size: var(--ha-font-size-m);
+      gap: 2px;
+      --mdc-icon-size: 14px;
+    }
   }
-  .container.xs .state {
-    font-size: var(--ha-font-size-l);
-  }
-  .container.xs .info {
-    margin-top: 12px;
-  }
-  .container.xs .buttons {
-    display: none;
-  }
-  .container.xs ha-control-circular-slider {
-    margin-bottom: -16px;
-  }
-  .container.xs .label {
-    display: none;
+
+  @container container (width < 130px) {
+    .state {
+      font-size: var(--ha-font-size-l);
+    }
+    .info {
+      font-size: var(--ha-font-size-l);
+      gap: var(--ha-space-2);
+      --mdc-icon-size: 16px;
+    }
+    .label {
+      display: none;
+    }
   }
 
   .bt-buttons {
@@ -300,13 +304,14 @@ export const ShadowStyles = css`
      the bottom, where the buttons normally sit — pull the actions up over
      that band. Deliberately NOT a negative margin on the wrapper: the dial
      is sized from .container's observed height, so shrinking the container
-     would shrink the dial in a feedback loop. The % resolves against the
-     card width; max() caps it once the card is wider than the 320px dial.
+     would shrink the dial in a feedback loop. --bt-dial-size is the dial's
+     measured size from render(); basing the pull-up on the card width
+     instead overlapped the arcs of a height-capped dial in sections layout.
      The overlapped .actions must be lifted above the positioned .container
      (which otherwise hit-tests first and eats the clicks), while its own
      empty space stays click-through for the slider arc underneath. */
   ha-card.no-buttons .actions {
-    margin-top: max(-45px, -14%);
+    margin-top: calc(var(--bt-dial-size, 320px) * -0.14);
     position: relative;
     z-index: 1;
     pointer-events: none;
@@ -374,6 +379,17 @@ export const ShadowStyles = css`
      changes won't stick, so dim the buttons — still clickable. */
   mushroom-button.bt-offline {
     opacity: 0.4;
+  }
+
+  /* HVAC mode buttons: natural-size buttons centered like the preset row —
+     not a stretched mushroom-button-group — so both rows match. */
+  .modes-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
   }
 
   /* show_all_presets: dedicated preset row below the mode buttons. */

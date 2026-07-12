@@ -20,6 +20,9 @@ export type SharedBtCardConfig = {
   show_current_as_primary?: boolean;
   show_secondary?: boolean;
   disable_buttons?: boolean;
+  // Show the HVAC mode buttons row (default true). Replaces the inverted
+  // legacy disable_all_buttons — resolve via showModeButtons().
+  show_mode_buttons?: boolean;
   disable_all_buttons?: boolean;
   disable_menu?: boolean;
   prevent_interaction_on_scroll?: boolean;
@@ -53,6 +56,13 @@ export type SharedBtCardConfig = {
   preset_order?: string[];
 };
 
+// Effective visibility of the HVAC mode buttons row: the positive
+// show_mode_buttons wins; configs saved before the rename may still carry
+// the inverted disable_all_buttons instead.
+export function showModeButtons(config: SharedBtCardConfig): boolean {
+  return config.show_mode_buttons ?? !config.disable_all_buttons;
+}
+
 export const sharedBtConfigStruct = object({
   features: optional(array(any())),
   colors: optional(record(string(), string())),
@@ -60,6 +70,7 @@ export const sharedBtConfigStruct = object({
   show_current_as_primary: optional(boolean()),
   show_secondary: optional(boolean()),
   disable_buttons: optional(boolean()),
+  show_mode_buttons: optional(boolean()),
   disable_all_buttons: optional(boolean()),
   disable_menu: optional(boolean()),
   prevent_interaction_on_scroll: optional(boolean()),

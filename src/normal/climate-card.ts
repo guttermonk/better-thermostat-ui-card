@@ -57,6 +57,7 @@ import {
 } from "../shared/climate-colors";
 import { alphaColor } from "../shared/color";
 import { findBtStubEntity, formatHumidity, isWindowOpen } from "../shared/bt";
+import { showModeButtons } from "../shared/config";
 import {
   getConnectivityLostEntityId,
   getErrorEntityId,
@@ -154,43 +155,30 @@ export class BetterThermostatUINormalCard
   }
 
   // Measures the dial container's height so render() can cap the wrapper to
-  // it. Retargeted from the host to the actual `.container` element in
-  // updated() — the host only reports its own resize.
+  // it. The callback re-queries the DOM instead of trusting the entries: with
+  // observations moving between elements, `entries[0]` can be a stale target
+  // whose height (e.g. the host's) then sticks forever, leaving the dial
+  // uncapped in fixed-height sections layouts.
   private _resizeController = new ResizeController(this, {
-    callback: (entries) => entries[0]?.contentRect.height,
-  });
-
-  private _sizeController = new ResizeController(this, {
-    callback: (entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (!width) return "lg";
-      return width < 130
-        ? "xs"
-        : width < 190
-          ? "sm"
-          : width < 250
-            ? "md"
-            : "lg";
+    callback: () => {
+      const container = this.shadowRoot?.querySelector("ha-card > .container");
+      return container?.clientHeight;
     },
   });
 
-  private _observedWrapper?: Element;
   private _observedContainer?: Element;
 
   protected updated(changedProperties: PropertyValues) {
     super.updated(changedProperties);
-    // The observed elements can appear late (entity absent at first render)
-    // or be recreated after a `nothing` render — (re)target the resize
-    // observers whenever the rendered element changes.
-    const wrapper = this.shadowRoot?.querySelector(".bt-wrapper");
-    if (wrapper && wrapper !== this._observedWrapper) {
-      this._sizeController.unobserve(this._observedWrapper ?? this);
-      this._sizeController.observe(wrapper);
-      this._observedWrapper = wrapper;
-    }
+    // The host (observed since construction) only resizes with the outer
+    // layout. Observe the container as well: it can appear late (entity
+    // absent at first render), and its height also changes without a host
+    // resize — e.g. the no-buttons actions overlap toggling on a
+    // fixed-height sections card.
     const container = this.shadowRoot?.querySelector("ha-card > .container");
     if (container && container !== this._observedContainer) {
-      this._resizeController.unobserve(this._observedContainer ?? this);
+      if (this._observedContainer)
+        this._resizeController.unobserve(this._observedContainer);
       this._resizeController.observe(container);
       this._observedContainer = container;
     }
@@ -220,6 +208,12 @@ export class BetterThermostatUINormalCard
     let rows = 5;
     let min_rows = 4;
     const min_columns = 6;
+    // The plus/minus buttons only render on a dial ≥ 250px (below that the
+    // responsive rules hide them). At 5 rows the title and actions row leave
+    // only ~210px — reserve an extra row so enabled buttons actually show.
+    if (this._config && !this._config.disable_buttons) {
+      rows += 1;
+    }
     // Like the HA core thermostat card: reserve extra rows for features so
     // they don't eat into the dial's space.
     if (this._config?.features?.length) {
@@ -528,9 +522,6 @@ export class BetterThermostatUINormalCard
     const action = stateObj.attributes.hvac_action;
     const active = stateActive(stateObj);
 
-    const containerSizeClass = this._sizeController.value
-      ? ` ${this._sizeController.value}`
-      : "";
     let actionColor: string | undefined;
     if (action && action !== "idle" && action !== "off" && active) {
       actionColor = climateColor(CLIMATE_HVAC_ACTION_TO_MODE[action] ?? "off");
@@ -587,12 +578,18 @@ export class BetterThermostatUINormalCard
     return html`
       <ha-card
         class=${classMap({ "no-buttons": hideButtons })}
-        style=${styleMap(climateColorOverrides(this._config.colors))}
+        style=${styleMap({
+          ...climateColorOverrides(this._config.colors),
+          // The no-buttons actions overlap is a fraction of the dial's real
+          // size — not the card width, which can be much wider than the
+          // height-capped dial in sections layout.
+          "--bt-dial-size": controlMaxWidth ?? "",
+        })}
       >
         <p class="title">${name}</p>
         <div class="container">
           <div
-            class="bt-wrapper container${containerSizeClass}"
+            class="bt-wrapper container"
             style=${styleMap({
               "--low-color": lowColor,
               "--high-color": highColor,
@@ -1000,11 +997,11 @@ export class BetterThermostatUINormalCard
             ...hvacModes.slice(presetsIndex),
           ];
 
-    // disable_all_buttons hides the whole row, except the presets button
+    // show_mode_buttons off hides the whole row, except the presets button
     // as long as presets aren't disabled themselves.
-    const presetOnly =
-      !!config.disable_all_buttons && !config.disable_presets && hasPresets;
-    const showActions = !config.disable_all_buttons || presetOnly;
+    const modeButtons = showModeButtons(config);
+    const presetOnly = !modeButtons && !config.disable_presets && hasPresets;
+    const showActions = modeButtons || presetOnly;
     if (!showActions) return nothing;
 
     const currentPreset = getCurrentPreset(
@@ -1033,9 +1030,9 @@ export class BetterThermostatUINormalCard
           ? showAllPresets
             ? nothing
             : html`
-                <mushroom-button-group .fill=${true} ?rtl=${false}>
+                <div class="modes-row">
                   ${this.renderModeButton("presets")}
-                </mushroom-button-group>
+                </div>
               `
           : config.features?.length
             ? html`
@@ -1047,9 +1044,9 @@ export class BetterThermostatUINormalCard
                 ></cts-hui-card-features>
               `
             : html`
-                <mushroom-button-group .fill=${true} ?rtl=${false}>
+                <div class="modes-row">
                   ${buttonModes.map((mode) => this.renderModeButton(mode))}
-                </mushroom-button-group>
+                </div>
               `}
         ${showAllPresets
           ? html`

@@ -3,7 +3,6 @@ import {
   mdiEye,
   mdiGestureTap,
   mdiPalette,
-  mdiTune,
   mdiWindowOpenVariant,
 } from "@mdi/js";
 import memoizeOne from "memoize-one";
@@ -28,7 +27,7 @@ export const CLIMATE_LABELS: string[] = [
   "show_current_as_primary",
   "show_secondary",
   "disable_buttons",
-  "disable_all_buttons",
+  "show_mode_buttons",
   "disable_menu",
   "prevent_interaction_on_scroll",
   "disable_eco",
@@ -49,7 +48,6 @@ export const CLIMATE_LABELS: string[] = [
   "color_source",
   "section_display",
   "section_interaction",
-  "section_features",
   "section_warnings",
   "section_sensors",
 ];
@@ -213,7 +211,13 @@ export const computeColorLabel = (
   );
 };
 
-export const computeInteractionSection = (): HaFormSchema =>
+// One section for everything tappable (button visibility + interaction
+// behavior). Each card passes exactly the toggles it actually reads — e.g.
+// the eco button only exists on the mini card, plus/minus and the menu only
+// on the normal card.
+export const computeInteractionSection = (
+  toggles: { name: string }[],
+): HaFormSchema =>
   ({
     name: "section_interaction",
     type: "expandable",
@@ -223,32 +227,7 @@ export const computeInteractionSection = (): HaFormSchema =>
       {
         type: "grid",
         name: "",
-        schema: [
-          { name: "disable_buttons", selector: { boolean: {} } },
-          { name: "disable_all_buttons", selector: { boolean: {} } },
-          { name: "disable_menu", selector: { boolean: {} } },
-          { name: "prevent_interaction_on_scroll", selector: { boolean: {} } },
-        ],
-      },
-    ],
-  }) as any;
-
-export const computeFeaturesSection = (): HaFormSchema =>
-  ({
-    name: "section_features",
-    type: "expandable",
-    flatten: true,
-    iconPath: mdiTune,
-    schema: [
-      {
-        type: "grid",
-        name: "",
-        schema: [
-          { name: "disable_eco", selector: { boolean: {} } },
-          { name: "disable_humidity", selector: { boolean: {} } },
-          { name: "disable_presets", selector: { boolean: {} } },
-          { name: "show_all_presets", selector: { boolean: {} } },
-        ],
+        schema: toggles.map((t) => ({ ...t, selector: { boolean: {} } })),
       },
     ],
   }) as any;

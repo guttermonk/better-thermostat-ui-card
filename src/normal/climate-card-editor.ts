@@ -16,11 +16,11 @@ import {
   orderPresetModes,
 } from "../shared/climate";
 import { createChainedLocalize } from "../shared/localize";
+import { showModeButtons } from "../shared/config";
 import {
   computeColorLabel,
   computeColorsSchema,
   computeDisplaySection,
-  computeFeaturesSection,
   computeInteractionSection,
   computeSensorsSection,
   computeWarningsSection,
@@ -49,6 +49,7 @@ const computeSchemaBefore = memoizeOne(
     computeDisplaySection([
       { name: "show_current_as_primary" },
       { name: "show_secondary" },
+      { name: "disable_humidity" },
     ]),
     computeColorsSchema(
       hvacModes,
@@ -60,8 +61,14 @@ const computeSchemaBefore = memoizeOne(
 );
 
 const computeSchemaAfter = memoizeOne((isBt: boolean): HaFormSchema[] => [
-  computeInteractionSection(),
-  computeFeaturesSection(),
+  computeInteractionSection([
+    { name: "show_mode_buttons" },
+    { name: "disable_buttons" },
+    { name: "disable_presets" },
+    { name: "show_all_presets" },
+    { name: "disable_menu" },
+    { name: "prevent_interaction_on_scroll" },
+  ]),
   // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
   ...(isBt ? [computeWarningsSection(true)] : []),
 ]);
@@ -163,9 +170,11 @@ export class NormalClimateCardEditor
       low_battery_threshold: this._config?.low_battery_threshold ?? 10,
       // Mirror the card's effective defaults so the toggles reflect
       // reality: secondary info is shown unless explicitly disabled, and
-      // setConfig() defaults disable_buttons to true.
+      // setConfig() defaults disable_buttons to true. show_mode_buttons also
+      // resolves the inverted legacy disable_all_buttons key.
       show_secondary: this._config?.show_secondary ?? true,
       disable_buttons: this._config?.disable_buttons ?? true,
+      show_mode_buttons: this._config ? showModeButtons(this._config) : true,
     };
 
     const computeLabel = (schema: HaFormSchema) => {
@@ -290,6 +299,12 @@ export class NormalClimateCardEditor
     const value = {
       ...(ev.detail.value as BetterThermostatUINormalCardConfig),
     };
+    // The form edits show_mode_buttons — the legacy inverted key would
+    // otherwise fight it (showModeButtons prefers the new key, but stale
+    // YAML confuses readers).
+    if (value.show_mode_buttons !== undefined) {
+      delete value.disable_all_buttons;
+    }
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.
     if (value.colors) {

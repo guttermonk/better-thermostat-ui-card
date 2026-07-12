@@ -12,6 +12,7 @@ import { loadHaComponents } from "mushroom-cards/src/utils/loader";
 import { BetterThermostatUISmallCardConfig } from "./climate-card-config";
 import { CLIMATE_CARD_EDITOR_NAME, CLIMATE_ENTITY_DOMAINS } from "./const";
 import { isBtEntity } from "../shared/bt";
+import { showModeButtons } from "../shared/config";
 import {
   PresetDisplayOptions,
   getPresetDisplayName,
@@ -23,7 +24,6 @@ import {
   computeColorLabel,
   computeColorsSchema,
   computeDisplaySection,
-  computeFeaturesSection,
   computeInteractionSection,
   computeSensorsSection,
   computeWarningsSection,
@@ -58,6 +58,7 @@ const computeSchemaBefore = memoizeOne(
     computeDisplaySection([
       { name: "show_temperature_control" },
       { name: "collapsible_controls" },
+      { name: "disable_humidity" },
     ]),
     computeColorsSchema(
       hvacModes,
@@ -69,8 +70,15 @@ const computeSchemaBefore = memoizeOne(
 );
 
 const computeSchemaAfter = memoizeOne((isBt: boolean): HaFormSchema[] => [
-  computeInteractionSection(),
-  computeFeaturesSection(),
+  // No plus/minus, menu, or scroll toggles: the mini card doesn't read
+  // those — its temperature control and tap/hold actions are configured in
+  // the display and actions sections instead.
+  computeInteractionSection([
+    { name: "show_mode_buttons" },
+    { name: "disable_eco" },
+    { name: "disable_presets" },
+    { name: "show_all_presets" },
+  ]),
   // Warnings rely on BT-only attributes (batteries, errors, degraded_mode)
   ...(isBt ? [computeWarningsSection(true)] : []),
   ...computeActionsFormSchema(),
@@ -200,7 +208,13 @@ export class ClimateCardEditor
       splitPresets(presetModes),
       this._config.preset_order,
     );
-    const data = { low_battery_threshold: 10, ...this._config };
+    const data = {
+      low_battery_threshold: 10,
+      ...this._config,
+      // Resolves the inverted legacy disable_all_buttons key so the toggle
+      // reflects what the card actually shows.
+      show_mode_buttons: showModeButtons(this._config),
+    };
 
     return html`
       ${entityMissing
@@ -297,6 +311,11 @@ export class ClimateCardEditor
 
   private _valueChanged(ev: CustomEvent): void {
     const value = { ...(ev.detail.value as BetterThermostatUISmallCardConfig) };
+    // The form edits show_mode_buttons — drop the legacy inverted key so
+    // stale YAML doesn't linger alongside it.
+    if (value.show_mode_buttons !== undefined) {
+      delete value.disable_all_buttons;
+    }
     // ha-form emits colors: {} (or empty-string entries) when pickers are
     // cleared — don't persist that noise in the YAML.
     if (value.colors) {
