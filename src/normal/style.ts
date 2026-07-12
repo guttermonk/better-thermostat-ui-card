@@ -17,7 +17,11 @@ export const ShadowStyles = css`
     padding: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    /* flex-start (not space-between): in a grid cell taller than the
+       content, leftover height must stay at the bottom — splitting it
+       around the dial separates the actions from the dial band their
+       overlap is calibrated against. */
+    justify-content: flex-start;
     padding-left: 1em;
     padding-right: 1em;
     overflow: hidden;
@@ -121,9 +125,12 @@ export const ShadowStyles = css`
 
   /* Like the HA core thermostat card: if the dial ever exceeds the container
      (a transient before the measured height cap applies), clip it rather
-     than let it paint over the title and actions. */
+     than let it paint over the title and actions. The max-height keeps the
+     container flush with the 320px-capped dial in oversized grid cells, so
+     the actions always sit directly under the dial. */
   ha-card > .container {
     overflow: hidden;
+    max-height: 320px;
   }
 
   /* Zero-width spacer pinning the container's intrinsic height to the

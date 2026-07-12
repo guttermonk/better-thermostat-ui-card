@@ -584,16 +584,17 @@ export class BetterThermostatUINormalCard
     const hideButtons =
       this._config.disable_buttons ||
       !(this._supportsTargetValue || this._supportsTargetRange);
-    // The no-buttons overlap pulls the actions onto that band, but only when
-    // the band (14% of the dial) actually fits the 42px button row — on a
-    // smaller, height-capped dial the row would sit on the arc ends instead
-    // of in the gap, so it stacks below with the normal margin (see the
-    // ha-card.no-buttons .actions rule for the 8px fallback).
+    // The no-buttons overlap pulls the actions onto that band. 14% of the
+    // dial leaves ~3.5% clearance to the arcs' rounded end caps at any size;
+    // below 300px that shrinks toward button-corner contact, so give a few
+    // px of it back (a height-capped sections dial rather than the full
+    // 320px masonry one).
     const dialSize = this._resizeController.value
       ? Math.min(this._resizeController.value, 320)
       : 320;
-    const actionsOverlap =
-      dialSize >= 300 ? `${(-0.14 * dialSize).toFixed(1)}px` : "";
+    const overlapPx =
+      dialSize >= 300 ? 0.14 * dialSize : Math.max(0, 0.14 * dialSize - 6);
+    const actionsOverlap = `${(-overlapPx).toFixed(1)}px`;
 
     return html`
       <ha-card
