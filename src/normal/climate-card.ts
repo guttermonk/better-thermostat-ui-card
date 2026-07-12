@@ -214,6 +214,16 @@ export class BetterThermostatUINormalCard
     if (this._config && !this._config.disable_buttons) {
       rows += 1;
     }
+    // show_all_presets renders a second actions row below the mode buttons —
+    // reserve a row for it, or it eats the dial's height instead.
+    if (
+      this._config &&
+      showModeButtons(this._config) &&
+      this._config.show_all_presets &&
+      !this._config.disable_presets
+    ) {
+      rows += 1;
+    }
     // Like the HA core thermostat card: reserve extra rows for features so
     // they don't eat into the dial's space.
     if (this._config?.features?.length) {

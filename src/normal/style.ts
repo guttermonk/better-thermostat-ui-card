@@ -126,6 +126,20 @@ export const ShadowStyles = css`
     overflow: hidden;
   }
 
+  /* Zero-width spacer pinning the container's intrinsic height to the
+     dial's natural size (like HA core's padding-top: 100% spacer, capped at
+     the 320px dial maximum). Without it, an auto-height container is only as
+     tall as the (possibly height-capped) dial itself, so one transient
+     constraint — e.g. the edit dialog opening — ratchets the measured cap
+     down for good: container height = capped dial = next measurement. In
+     fixed-height layouts flex (1 1 0 + min-height: 0) still shrinks the
+     container below the spacer, so the sections cap keeps working. */
+  ha-card > .container::before {
+    content: "";
+    display: block;
+    padding-top: min(320px, 100%);
+  }
+
   .container > .bt-wrapper {
     width: 100%;
     max-width: 320px;
