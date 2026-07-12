@@ -327,14 +327,16 @@ export const ShadowStyles = css`
      the bottom, where the buttons normally sit — pull the actions up over
      that band. Deliberately NOT a negative margin on the wrapper: the dial
      is sized from .container's observed height, so shrinking the container
-     would shrink the dial in a feedback loop. --bt-dial-size is the dial's
-     measured size from render(); basing the pull-up on the card width
-     instead overlapped the arcs of a height-capped dial in sections layout.
-     The overlapped .actions must be lifted above the positioned .container
-     (which otherwise hit-tests first and eats the clicks), while its own
-     empty space stays click-through for the slider arc underneath. */
+     would shrink the dial in a feedback loop. render() computes
+     --bt-actions-margin from the dial's measured size and leaves it unset
+     on dials whose band can't fit the button row (height-capped sections) —
+     those fall back to stacking below with the same 8px gap as the
+     buttons-shown case. The overlapped .actions must be lifted above the
+     positioned .container (which otherwise hit-tests first and eats the
+     clicks), while its own empty space stays click-through for the slider
+     arc underneath. */
   ha-card.no-buttons .actions {
-    margin-top: calc(var(--bt-dial-size, 320px) * -0.14);
+    margin-top: var(--bt-actions-margin, 8px);
     position: relative;
     z-index: 1;
     pointer-events: none;
