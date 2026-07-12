@@ -309,6 +309,9 @@ export const ShadowStyles = css`
 
   .actions {
     padding: 0 12px 12px 12px;
+    /* Breathing room between the dial's arc ends and the mode buttons —
+       the no-buttons rule below replaces it with the overlap pull-up. */
+    margin-top: 8px;
     justify-content: center;
     gap: 18px;
   }

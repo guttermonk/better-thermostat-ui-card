@@ -80,7 +80,6 @@ export const computeSensorsSection = (): HaFormSchema =>
     name: "section_sensors",
     type: "expandable",
     flatten: true,
-    expanded: true,
     iconPath: mdiWindowOpenVariant,
     schema: [
       {
@@ -110,7 +109,6 @@ export const computeDisplaySection = (
     name: "section_display",
     type: "expandable",
     flatten: true,
-    expanded: true,
     iconPath: mdiEye,
     schema: [
       {
