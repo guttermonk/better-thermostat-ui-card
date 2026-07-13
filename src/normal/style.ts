@@ -394,10 +394,6 @@ export const ShadowStyles = css`
     --mdc-icon-size: clamp(20px, 15cqmin, 75px);
   }
 
-  .label.warning {
-    --mdc-icon-size: clamp(20px, 15cqmin, 75px);
-  }
-
   .label.secondary:not(.label.humidity) {
     color: var(--action-color, inherit);
     gap: clamp(2px, 1.8cqmin, 8px);
