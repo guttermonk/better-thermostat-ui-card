@@ -46,7 +46,8 @@ export const btAnimationsStyle = css`
     }
   }
 
-  ha-icon.bt-pending {
+  ha-icon.bt-pending,
+  bt-icon.bt-pending {
     display: inline-flex;
     animation: bt-spin 1s linear infinite;
   }

@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 import "../components/cts-ha-control-select";
 import type { ControlSelectOption } from "../components/cts-ha-control-select";
+import "../../shared/bt-icon";
 import {
   BtClimateEntity,
   ClimateEntityFeature,
@@ -131,7 +132,7 @@ export class HuiClimatePresetModesCardFeature
         "preset_mode",
         mode,
       ),
-      icon: html`<ha-icon .icon=${getHvacModeIcon(mode)}></ha-icon>`,
+      icon: html`<bt-icon .icon=${getHvacModeIcon(mode)}></bt-icon>`,
     }));
 
     return html`

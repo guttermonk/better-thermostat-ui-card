@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 import "../components/cts-ha-control-select";
 import type { ControlSelectOption } from "../components/cts-ha-control-select";
+import { MDI_ICON_PATHS } from "../../shared/bt-icon";
 import { BtClimateEntity, UNAVAILABLE } from "../../shared/climate";
 import { compareClimateHvacModes, HomeAssistant } from "mushroom-cards/src/ha";
 import {
@@ -124,8 +125,8 @@ export class HuiClimateHvacModesCardFeature
     ).map((mode) => ({
       value: mode,
       label: this.hass!.formatEntityState(stateObj, mode),
-      path: getHvacModeIcon(mode).replace("mdi:", ""), // fallback if path doesn't work directly
-      icon: html`<ha-icon .icon=${getHvacModeIcon(mode)}></ha-icon>`,
+      path: MDI_ICON_PATHS[getHvacModeIcon(mode)],
+      icon: html`<bt-icon .icon=${getHvacModeIcon(mode)}></bt-icon>`,
     }));
 
     return html`

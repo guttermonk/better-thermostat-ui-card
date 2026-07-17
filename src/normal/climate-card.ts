@@ -32,6 +32,7 @@ import {
   mdiWifiStrengthOffOutline,
   mdiWhiteBalanceSunny,
 } from "@mdi/js";
+import "../shared/bt-icon";
 import { ShadowStyles } from "./style";
 import {
   BtClimateEntity,
@@ -1109,10 +1110,10 @@ export class BetterThermostatUINormalCard
         aria-label=${label}
         @click=${this.triggerModeChange.bind(this, mode)}
       >
-        <ha-icon
+        <bt-icon
           class=${classMap({ "bt-pending": pending })}
           .icon=${pending ? "mdi:loading" : this._presetIcon(mode)}
-        ></ha-icon>
+        ></bt-icon>
       </mushroom-button>
     `;
   }
@@ -1191,10 +1192,10 @@ export class BetterThermostatUINormalCard
               this._presetOverlay.setOpen(true);
             }}
           >
-            <ha-icon
+            <bt-icon
               class=${classMap({ "bt-pending": pending })}
               .icon=${pending ? "mdi:loading" : this._presetIcon(presets[0])}
-            ></ha-icon>
+            ></bt-icon>
           </mushroom-button>
         `;
       } else if (presets.length > 1) {
@@ -1211,10 +1212,10 @@ export class BetterThermostatUINormalCard
               this._presetOverlay.setOpen(true);
             }}
           >
-            <ha-icon
+            <bt-icon
               class=${classMap({ "bt-pending": pending })}
               .icon=${icon}
-            ></ha-icon>
+            ></bt-icon>
           </mushroom-button>
         `;
       } else {
@@ -1236,7 +1237,7 @@ export class BetterThermostatUINormalCard
         .disabled=${!isAvailable(this._stateObj)}
         @click=${this.triggerModeChange.bind(this, mode)}
       >
-        <ha-icon .icon=${getHvacModeIcon(mode as HvacMode)}></ha-icon>
+        <bt-icon .icon=${getHvacModeIcon(mode as HvacMode)}></bt-icon>
       </mushroom-button>
     `;
   }

@@ -6,6 +6,7 @@ import type { SortableEvent } from "sortablejs";
 import { fireEvent, HomeAssistant } from "mushroom-cards/src/ha";
 import { sortableStyles } from "mushroom-cards/src/ha/resources/ha-sortable-styles";
 import { PresetDisplayOptions } from "./climate";
+import "./bt-icon";
 
 // Same lazy singleton pattern as mushroom's chips editor — sortablejs is
 // only pulled in when a presets panel actually renders.
@@ -87,7 +88,7 @@ export class BtPresetsEditor extends LitElement {
     return html`
       <div class="preset-row">
         <div class="handle">
-          <ha-icon icon="mdi:drag"></ha-icon>
+          <bt-icon icon="mdi:drag"></bt-icon>
         </div>
         <ha-selector
           class="icon"

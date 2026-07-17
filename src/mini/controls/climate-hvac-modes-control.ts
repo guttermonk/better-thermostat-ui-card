@@ -13,6 +13,7 @@ import { ensureElementLoaded } from "../../shared/ensure-element-loaded";
 import { BtClimateEntity } from "../../shared/climate";
 import { climateColor, getHvacModeIcon } from "../../shared/climate-colors";
 import { alphaColor } from "../../shared/color";
+import "../../shared/bt-icon";
 
 export const isHvacModesVisible = (
   entity: BtClimateEntity,
@@ -85,7 +86,7 @@ export class ClimateHvacModesControl extends LitElement {
         .disabled=${!isAvailable(this.entity)}
         @click=${this.toggleEco}
       >
-        <ha-icon icon="mdi:leaf"></ha-icon>
+        <bt-icon icon="mdi:leaf"></bt-icon>
       </mushroom-button>
     `;
   }
@@ -143,7 +144,7 @@ export class ClimateHvacModesControl extends LitElement {
         .disabled=${!isAvailable(this.entity)}
         @click=${this.callService}
       >
-        <ha-icon .icon=${getHvacModeIcon(mode)}></ha-icon>
+        <bt-icon .icon=${getHvacModeIcon(mode)}></bt-icon>
       </mushroom-button>
     `;
   }

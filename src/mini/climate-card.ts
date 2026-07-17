@@ -70,6 +70,8 @@ import {
   presetOverlayStyle,
 } from "../shared/preset-overlay";
 import { btStateColorsStyle, btAnimationsStyle } from "../shared/styles";
+import "../shared/bt-icon";
+import "../shared/bt-badge-icon";
 
 type ClimateCardControl = "temperature_control" | "hvac_mode_control";
 
@@ -429,10 +431,10 @@ export class BetterThermostatUISmallCard
           }
         }}
       >
-        <ha-icon
+        <bt-icon
           class=${classMap({ "bt-pending": pending })}
           .icon=${pending ? "mdi:loading" : this._presetIcon(mode)}
-        ></ha-icon>
+        ></bt-icon>
       </mushroom-button>
     `;
   }
@@ -543,7 +545,7 @@ export class BetterThermostatUISmallCard
     const degradedMode = isDegraded(entity, this._config);
     if (degradedMode) {
       return html`
-        <mushroom-badge-icon
+        <bt-badge-icon
           slot="badge"
           .icon=${"mdi:alert"}
           title=${localize({
@@ -567,12 +569,12 @@ export class BetterThermostatUISmallCard
             border: "1px solid var(--warning-color, #ffc107)",
             borderRadius: "50%",
           })}
-        ></mushroom-badge-icon>
+        ></bt-badge-icon>
       `;
     }
     if (errorEntityId) {
       return html`
-        <mushroom-badge-icon
+        <bt-badge-icon
           slot="badge"
           .icon=${"mdi:wifi-strength-off-outline"}
           title=${localize({
@@ -590,13 +592,13 @@ export class BetterThermostatUISmallCard
             border: "1px solid var(--error-color, #f44336)",
             borderRadius: "50%",
           })}
-        ></mushroom-badge-icon>
+        ></bt-badge-icon>
       `;
     }
 
     if (lowBattery) {
       return html`
-        <mushroom-badge-icon
+        <bt-badge-icon
           slot="badge"
           .icon=${"mdi:battery-alert"}
           title=${localize({
@@ -612,7 +614,7 @@ export class BetterThermostatUISmallCard
             border: "1px solid var(--error-color, #f44336)",
             borderRadius: "50%",
           })}
-        ></mushroom-badge-icon>
+        ></bt-badge-icon>
       `;
     }
 
@@ -672,7 +674,7 @@ export class BetterThermostatUISmallCard
     if (summer && !windowOpen) finalColor = "var(--bt-color-summer)";
 
     return html`
-      <mushroom-badge-icon
+      <bt-badge-icon
         slot="badge"
         .icon=${icon}
         style=${styleMap({
@@ -681,7 +683,7 @@ export class BetterThermostatUISmallCard
           border: `1px solid ${windowOpen ? `var(--info-color)` : finalColor}`,
           borderRadius: "50%",
         })}
-      ></mushroom-badge-icon>
+      ></bt-badge-icon>
     `;
   }
 
@@ -694,7 +696,7 @@ export class BetterThermostatUISmallCard
       ${otherControls.map(
         (ctrl) => html`
           <mushroom-button @click=${(e: Event) => this._onControlTap(ctrl, e)}>
-            <ha-icon .icon=${CONTROLS_ICONS[ctrl]}></ha-icon>
+            <bt-icon .icon=${CONTROLS_ICONS[ctrl]}></bt-icon>
           </mushroom-button>
         `,
       )}
@@ -764,10 +766,10 @@ export class BetterThermostatUISmallCard
             }
           }}
         >
-          <ha-icon
+          <bt-icon
             class=${classMap({ "bt-pending": pending })}
             .icon=${pending ? "mdi:loading" : this._presetIcon(presets[0])}
-          ></ha-icon>
+          ></bt-icon>
         </mushroom-button>
       `;
     }
@@ -784,10 +786,10 @@ export class BetterThermostatUISmallCard
           this._presetOverlay.setOpen(true);
         }}
       >
-        <ha-icon
+        <bt-icon
           class=${classMap({ "bt-pending": pending })}
           .icon=${icon}
-        ></ha-icon>
+        ></bt-icon>
       </mushroom-button>
     `;
   }
