@@ -57,6 +57,7 @@ const computeSchemaBefore = memoizeOne(
     ...(!isBt ? [computeSensorsSection()] : []),
     computeDisplaySection([
       { name: "show_temperature_control" },
+      { name: "show_target_temperature" },
       { name: "collapsible_controls" },
       { name: "disable_humidity" },
     ]),

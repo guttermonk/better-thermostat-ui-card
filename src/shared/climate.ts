@@ -156,6 +156,33 @@ export function getPresetDisplayName(
   return hass.formatEntityAttributeValue(stateObj, "preset_mode", mode) || mode;
 }
 
+// Target setpoint text for the mini card's state line: the low–high range
+// ("67–75 °F") in heat_cool/auto, the single setpoint ("72 °F") in
+// heat/cool. Which attributes the integration populates already reflects the
+// active mode, so no explicit hvac-mode check is needed. Empty when off/
+// unavailable or when no target is exposed (fan_only/dry, transient nulls).
+export function formatTargetTemperature(
+  hass: HomeAssistant,
+  stateObj: BtClimateEntity,
+): string {
+  if (
+    stateObj.state === "off" ||
+    stateObj.state === UNAVAILABLE ||
+    stateObj.state === UNKNOWN
+  ) {
+    return "";
+  }
+  const { target_temp_low: low, target_temp_high: high } = stateObj.attributes;
+  const unit = hass.config.unit_system.temperature;
+  if (low != null && high != null) {
+    return `${low}–${high} ${unit}`;
+  }
+  if (stateObj.attributes.temperature != null) {
+    return `${stateObj.attributes.temperature} ${unit}`;
+  }
+  return "";
+}
+
 // Set an hvac mode or preset by name. A name matching one of the entity's
 // hvac_modes wins; otherwise it is treated as a preset (selecting the active
 // preset again clears it back to "none"). With a preset_entity, presets are

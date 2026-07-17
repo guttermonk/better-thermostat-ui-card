@@ -18,6 +18,7 @@
         "show_plus_minus": "Show the plus/minus buttons",
         "show_mode_buttons": "Show mode buttons",
         "show_temperature_control": "Show temperature control",
+        "show_target_temperature": "Show target temperature in the state line",
         "collapsible_controls": "Collapsible controls",
         "show_current_as_primary": "Show current temperature as primary",
         "show_secondary": "Show secondary information",

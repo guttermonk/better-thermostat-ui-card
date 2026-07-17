@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
   ClimateEntityFeature,
+  formatTargetTemperature,
   getCurrentPreset,
   getPresetDisplayName,
   getPresetModes,
@@ -257,6 +258,37 @@ describe("preset source helpers", () => {
         preset_order: ["away", "eco"],
       }),
     ).toEqual(["away", "eco"]);
+  });
+
+  it("formatTargetTemperature: range in heat_cool, single setpoint otherwise", () => {
+    const hass = { config: { unit_system: { temperature: "°F" } } } as any;
+    expect(
+      formatTargetTemperature(
+        hass,
+        entity({ target_temp_low: 67, target_temp_high: 75 }),
+      ),
+    ).toBe("67–75 °F");
+    expect(formatTargetTemperature(hass, entity({ temperature: 72 }))).toBe(
+      "72 °F",
+    );
+    // No target exposed (fan_only/dry, transient nulls).
+    expect(formatTargetTemperature(hass, entity({}))).toBe("");
+    expect(formatTargetTemperature(hass, entity({ temperature: null }))).toBe(
+      "",
+    );
+    // Off/unavailable: no target even if the attribute lingers.
+    expect(
+      formatTargetTemperature(hass, {
+        ...entity({ temperature: 72 }),
+        state: "off",
+      }),
+    ).toBe("");
+    expect(
+      formatTargetTemperature(hass, {
+        ...entity({ temperature: 72 }),
+        state: "unavailable",
+      }),
+    ).toBe("");
   });
 
   it("getPresetDisplayName falls back to the raw mode name", () => {

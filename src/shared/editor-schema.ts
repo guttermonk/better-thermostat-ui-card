@@ -23,6 +23,7 @@ import { PresetDisplayOptions } from "./climate";
 // (editor.card.climate.*) instead of HA's generic editor strings.
 export const CLIMATE_LABELS: string[] = [
   "show_temperature_control",
+  "show_target_temperature",
   "collapsible_controls",
   "show_current_as_primary",
   "show_secondary",

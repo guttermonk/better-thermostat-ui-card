@@ -21,6 +21,9 @@ export type BetterThermostatUISmallCardConfig = LovelaceCardConfig &
   ActionsSharedConfig &
   SharedBtCardConfig & {
     show_temperature_control?: boolean;
+    // Append the target setpoint (heat/cool) or low–high range
+    // (heat_cool/auto) to the state line.
+    show_target_temperature?: boolean;
   };
 
 export const climateCardConfigStruct = assign(
@@ -34,6 +37,7 @@ export const climateCardConfigStruct = assign(
     sharedBtConfigStruct,
     object({
       show_temperature_control: optional(boolean()),
+      show_target_temperature: optional(boolean()),
     }),
   ),
 );

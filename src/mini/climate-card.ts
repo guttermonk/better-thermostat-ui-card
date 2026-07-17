@@ -39,6 +39,7 @@ import { isTemperatureControlVisible } from "./controls/climate-temperature-cont
 import {
   BtClimateEntity,
   PRESET_PENDING_TIMEOUT_MS,
+  formatTargetTemperature,
   getCurrentPreset,
   getPresetDisplayName,
   getVisiblePresetModes,
@@ -279,6 +280,12 @@ export class BetterThermostatUISmallCard
         humidity = ` ⸱ ${humidityDisplay}`;
       }
       stateDisplay += ` ⸱ ${window ? `(${windowOpen}) ` : summer ? `(${summerLabel}) ` : ""}${temperature}${humidity}`;
+    }
+    if (this._config.show_target_temperature) {
+      const target = formatTargetTemperature(this.hass, stateObj);
+      if (target) {
+        stateDisplay += ` ⸱ → ${target}`;
+      }
     }
     const rtl = computeRTL(this.hass);
 
