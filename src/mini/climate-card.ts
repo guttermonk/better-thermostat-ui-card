@@ -25,11 +25,16 @@ import {
 } from "mushroom-cards/src/ha";
 import { ensureElementLoaded } from "../shared/ensure-element-loaded";
 import { showModeButtons } from "../shared/config";
+import { mdiTarget } from "@mdi/js";
 import { computeAppearance } from "mushroom-cards/src/utils/appearance";
 import { MushroomBaseCard } from "mushroom-cards/src/utils/base-card";
 import { cardStyle } from "mushroom-cards/src/utils/card-styles";
 import { registerCustomCard } from "mushroom-cards/src/utils/custom-cards";
-import { computeEntityPicture } from "mushroom-cards/src/utils/info";
+import {
+  computeEntityPicture,
+  computeInfoDisplay,
+} from "mushroom-cards/src/utils/info";
+import { Appearance } from "mushroom-cards/src/shared/config/appearance-config";
 import { BetterThermostatUISmallCardConfig } from "./climate-card-config";
 import { CLIMATE_CARD_EDITOR_NAME, CLIMATE_CARD_NAME } from "./const";
 import "./controls/climate-hvac-modes-control";
@@ -281,12 +286,9 @@ export class BetterThermostatUISmallCard
       }
       stateDisplay += ` ⸱ ${window ? `(${windowOpen}) ` : summer ? `(${summerLabel}) ` : ""}${temperature}${humidity}`;
     }
-    if (this._config.show_target_temperature) {
-      const target = formatTargetTemperature(this.hass, stateObj);
-      if (target) {
-        stateDisplay += ` ⸱ → ${target}`;
-      }
-    }
+    const targetLine = this._config.show_target_temperature
+      ? formatTargetTemperature(this.hass, stateObj)
+      : "";
     const rtl = computeRTL(this.hass);
 
     const isControlVisible =
@@ -365,7 +367,15 @@ export class BetterThermostatUISmallCard
               ? this.renderPicture(picture)
               : this.renderIcon(stateObj, icon)}
             ${this.renderBadge(stateObj)}
-            ${this.renderStateInfo(stateObj, appearance, name, stateDisplay)}
+            ${targetLine
+              ? this.renderStateInfoWithTarget(
+                  stateObj,
+                  appearance,
+                  name,
+                  stateDisplay,
+                  targetLine,
+                )
+              : this.renderStateInfo(stateObj, appearance, name, stateDisplay)}
           </mushroom-state-item>
           ${isControlVisible
             ? html`
@@ -398,6 +408,50 @@ export class BetterThermostatUISmallCard
               `}
         </mushroom-card>
       </ha-card>
+    `;
+  }
+
+  // Like the inherited renderStateInfo, but with the target setpoint on its
+  // own line below the state — the state line is already dense (state,
+  // current temperature, humidity). Only the slot actually showing the
+  // state gets the extra line; "name"/"none" slots are left untouched.
+  private renderStateInfoWithTarget(
+    stateObj: BtClimateEntity,
+    appearance: Appearance,
+    name: string,
+    stateDisplay: string,
+    target: string,
+  ) {
+    // The template renders inside mushroom-state-info's shadow DOM, out of
+    // reach of this card's styles — hence the inline icon sizing (1em tracks
+    // the slot's own font size).
+    const withTarget = (info: ReturnType<typeof computeInfoDisplay>) =>
+      info === stateDisplay
+        ? html`${stateDisplay}<br /><ha-svg-icon
+              style="--mdc-icon-size: 1em; width: 1em; height: 1em; vertical-align: -0.125em; margin-right: 2px;"
+              .path=${mdiTarget}
+            ></ha-svg-icon>${target}`
+        : info;
+    const primary = computeInfoDisplay(
+      appearance.primary_info,
+      name,
+      stateDisplay,
+      stateObj,
+      this.hass,
+    );
+    const secondary = computeInfoDisplay(
+      appearance.secondary_info,
+      name,
+      stateDisplay,
+      stateObj,
+      this.hass,
+    );
+    return html`
+      <mushroom-state-info
+        slot="info"
+        .primary=${withTarget(primary)}
+        .secondary=${withTarget(secondary)}
+      ></mushroom-state-info>
     `;
   }
 
