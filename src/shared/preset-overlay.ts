@@ -80,7 +80,10 @@ export const presetOverlayStyle = css`
     height: 100%;
     backdrop-filter: blur(8px);
     display: flex;
-    align-items: center;
+    /* "safe": plain centering clips BOTH edges of overflowing content,
+       leaving buttons unreachable — safe centering falls back to start
+       alignment so everything stays scrollable into view. */
+    align-items: safe center;
     flex-direction: row;
     max-height: 0%;
     overflow: hidden;
@@ -97,5 +100,8 @@ export const presetOverlayStyle = css`
     z-index: 10;
     visibility: visible;
     backface-visibility: visible;
+    /* More presets than fit the card's box: scroll instead of clipping. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 `;

@@ -903,7 +903,10 @@ const we=1,ke=2,Ce=e=>(...t)=>({_$litDirective$:e,values:t});let xe=class{constr
     height: 100%;
     backdrop-filter: blur(8px);
     display: flex;
-    align-items: center;
+    /* "safe": plain centering clips BOTH edges of overflowing content,
+       leaving buttons unreachable — safe centering falls back to start
+       alignment so everything stays scrollable into view. */
+    align-items: safe center;
     flex-direction: row;
     max-height: 0%;
     overflow: hidden;
@@ -920,6 +923,9 @@ const we=1,ke=2,Ce=e=>(...t)=>({_$litDirective$:e,values:t});let xe=class{constr
     z-index: 10;
     visibility: visible;
     backface-visibility: visible;
+    /* More presets than fit the card's box: scroll instead of clipping. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 `,Kh=h`
   :host {
@@ -1231,11 +1237,15 @@ const we=1,ke=2,Ce=e=>(...t)=>({_$litDirective$:e,values:t});let xe=class{constr
         bt-climate-hvac-modes-control {
           flex: 1;
         }
-        /* Base overlay skeleton comes from the shared presetOverlayStyle. */
+        /* Base overlay skeleton comes from the shared presetOverlayStyle.
+           Wrap + safe-centered rows: on a short card the rows scroll (see
+           the shared .open rule) instead of clipping. */
         .preset-select {
           justify-content: space-evenly;
-          gap: 15px;
-          padding: 0 1em 0em 1em;
+          flex-wrap: wrap;
+          align-content: safe center;
+          gap: 8px 15px;
+          padding: 8px 1em;
           background-color: rgba(var(--rgb-card-background-color), 0.3);
         }
         /* Device unreachable (connectivity_entity / preset_entity signal):
@@ -1694,7 +1704,9 @@ const{I:Yh}=de,Jh=()=>document.createComment(""),Qh=(e,t,o)=>{const i=e._$AA.par
   /* Base overlay skeleton comes from the shared presetOverlayStyle. */
   .preset-select {
     justify-content: center;
-    align-content: center;
+    /* safe: overflowing rows scroll into view instead of clipping at both
+       edges (shared .open rule adds the scrolling). */
+    align-content: safe center;
     gap: 12px;
     flex-wrap: wrap;
     background-color: rgba(var(--rgb-card-background-color), 0.6);

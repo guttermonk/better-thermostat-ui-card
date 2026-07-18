@@ -440,7 +440,9 @@ export const ShadowStyles = css`
   /* Base overlay skeleton comes from the shared presetOverlayStyle. */
   .preset-select {
     justify-content: center;
-    align-content: center;
+    /* safe: overflowing rows scroll into view instead of clipping at both
+       edges (shared .open rule adds the scrolling). */
+    align-content: safe center;
     gap: 12px;
     flex-wrap: wrap;
     background-color: rgba(var(--rgb-card-background-color), 0.6);

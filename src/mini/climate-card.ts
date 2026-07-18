@@ -960,11 +960,15 @@ export class BetterThermostatUISmallCard
         bt-climate-hvac-modes-control {
           flex: 1;
         }
-        /* Base overlay skeleton comes from the shared presetOverlayStyle. */
+        /* Base overlay skeleton comes from the shared presetOverlayStyle.
+           Wrap + safe-centered rows: on a short card the rows scroll (see
+           the shared .open rule) instead of clipping. */
         .preset-select {
           justify-content: space-evenly;
-          gap: 15px;
-          padding: 0 1em 0em 1em;
+          flex-wrap: wrap;
+          align-content: safe center;
+          gap: 8px 15px;
+          padding: 8px 1em;
           background-color: rgba(var(--rgb-card-background-color), 0.3);
         }
         /* Device unreachable (connectivity_entity / preset_entity signal):
