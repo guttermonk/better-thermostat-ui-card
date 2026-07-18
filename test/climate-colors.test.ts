@@ -10,10 +10,27 @@ import {
   climateStateColor,
   getHvacActionIcon,
   getHvacModeIcon,
+  getPresetColor,
   getPresetIcon,
   hasClimateColor,
 } from "../src/shared/climate-colors";
 import { alphaColor, computeCssColor } from "../src/shared/color";
+
+describe("getPresetColor", () => {
+  it("a per-preset override wins: theme token or raw CSS", () => {
+    expect(getPresetColor("Wake", "purple")).toBe("var(--purple-color)");
+    expect(getPresetColor("home", "#ff00ff")).toBe("#ff00ff");
+  });
+
+  it("falls back to the known slot, case-insensitively", () => {
+    expect(getPresetColor("Home")).toBe("var(--bt-color-home)");
+    expect(getPresetColor("eco")).toBe("var(--bt-color-eco)");
+  });
+
+  it("unknown presets without an override get the grey fallback", () => {
+    expect(getPresetColor("Wake")).toBe("var(--bt-color-off)");
+  });
+});
 
 describe("climateColor", () => {
   it("maps keys to --bt-color-* variables with dashes", () => {

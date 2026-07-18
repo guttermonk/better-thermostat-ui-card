@@ -189,6 +189,16 @@ export function getPresetIcon(preset: string, override?: string): string {
   );
 }
 
+// Color for a preset button/background. A per-preset override from the card
+// config (preset_options) wins — theme token or raw CSS; otherwise the
+// case-insensitive known color slot (which reflects legacy `colors:` preset
+// entries and theme variables), with climateColor's grey fallback for
+// unrecognized presets.
+export function getPresetColor(preset: string, override?: string): string {
+  if (override) return computeCssColor(override);
+  return climateColor(preset);
+}
+
 export function getHvacActionIcon(hvacAction: HvacAction | string): string {
   const icon = CLIMATE_HVAC_ACTION_ICONS[hvacAction as HvacAction];
   if (icon) return icon;

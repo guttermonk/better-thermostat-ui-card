@@ -11,45 +11,41 @@ const pickerNames = (schema: any): string[] =>
     .schema.map((field: { name: string }) => field.name);
 
 describe("computeColorsSchema", () => {
-  it("offers only the entity's hvac modes and presets", () => {
-    const schema = computeColorsSchema("heat,off", "none,eco,away");
-    expect(pickerNames(schema)).toEqual(["heat", "eco", "away"]);
+  it("offers only the entity's hvac modes — presets moved to their section", () => {
+    const schema = computeColorsSchema("heat,cool,off");
+    expect(pickerNames(schema)).toEqual(["cool", "heat"]);
   });
 
   it("never offers a picker for off — it is intentionally grey", () => {
-    expect(pickerNames(computeColorsSchema(undefined, undefined))).not.toContain(
-      "off",
-    );
-    expect(pickerNames(computeColorsSchema("off", ""))).toEqual([]);
+    expect(pickerNames(computeColorsSchema(undefined))).not.toContain("off");
+    expect(pickerNames(computeColorsSchema("off"))).toEqual([]);
   });
 
-  it("falls back to all keys (minus off) when the entity is unknown", () => {
-    expect(pickerNames(computeColorsSchema(undefined, undefined))).toEqual([
+  it("falls back to all hvac keys (minus off) when the entity is unknown", () => {
+    expect(pickerNames(computeColorsSchema(undefined))).toEqual([
       "auto",
       "cool",
       "dry",
       "fan_only",
       "heat",
       "heat_cool",
-      "eco",
-      "away",
-      "boost",
-      "sleep",
-      "comfort",
-      "activity",
-      "home",
     ]);
   });
 
-  it("empty preset list yields no preset pickers (canonical key order)", () => {
-    expect(pickerNames(computeColorsSchema("heat,cool", ""))).toEqual([
-      "cool",
-      "heat",
-    ]);
+  it("shows the card's default color as the picker's default swatch", () => {
+    const schema = computeColorsSchema("heat,heat_cool") as any;
+    const grid = schema.schema.find(
+      (child: { type?: string }) => child.type === "grid",
+    );
+    for (const field of grid.schema) {
+      expect(field.selector.ui_color.default_color).toBe(
+        `rgb(var(--rgb-state-climate-${field.name.replace(/_/g, "-")}))`,
+      );
+    }
   });
 
   it("nests values under the colors config key (non-flattened section)", () => {
-    const schema = computeColorsSchema("heat", "") as any;
+    const schema = computeColorsSchema("heat") as any;
     expect(schema.name).toBe("colors");
     expect(schema.type).toBe("expandable");
     expect(schema.flatten).toBeUndefined();
@@ -58,7 +54,6 @@ describe("computeColorsSchema", () => {
   it("offers the color_source dropdown with the passed labels", () => {
     const schema = computeColorsSchema(
       "heat",
-      "eco",
       "Active preset (default)",
       "HVAC mode",
     ) as any;
@@ -83,10 +78,14 @@ describe("presets panel helpers", () => {
     expect(
       prunePresetOptions({
         eco: { hidden: true, icon: "mdi:leaf-circle" },
+        Wake: { color: "purple" },
         Away: {},
-        Home: { hidden: undefined, icon: "" },
+        Home: { hidden: undefined, icon: "", color: "" },
       }),
-    ).toEqual({ eco: { hidden: true, icon: "mdi:leaf-circle" } });
+    ).toEqual({
+      eco: { hidden: true, icon: "mdi:leaf-circle" },
+      Wake: { color: "purple" },
+    });
     expect(prunePresetOptions({ eco: {} })).toBeUndefined();
     expect(prunePresetOptions({})).toBeUndefined();
   });

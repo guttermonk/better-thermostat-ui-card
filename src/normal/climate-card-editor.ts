@@ -15,6 +15,7 @@ import {
   getPresetDisplayName,
   orderPresetModes,
 } from "../shared/climate";
+import { CLIMATE_PRESET_COLOR_KEYS } from "../shared/climate-colors";
 import { createChainedLocalize } from "../shared/localize";
 import { showModeButtons } from "../shared/config";
 import {
@@ -36,7 +37,6 @@ const computeSchemaBefore = memoizeOne(
   (
     isBt: boolean,
     hvacModes?: string,
-    presetModes?: string,
     presetSourceLabel?: string,
     hvacSourceLabel?: string,
   ): HaFormSchema[] => [
@@ -51,12 +51,7 @@ const computeSchemaBefore = memoizeOne(
       { name: "show_secondary" },
       { name: "disable_humidity" },
     ]),
-    computeColorsSchema(
-      hvacModes,
-      presetModes,
-      presetSourceLabel,
-      hvacSourceLabel,
-    ),
+    computeColorsSchema(hvacModes, presetSourceLabel, hvacSourceLabel),
   ],
 );
 
@@ -128,6 +123,32 @@ export class NormalClimateCardEditor
       : undefined;
   }
 
+  // Effective per-preset options for the panel: seed each row's color from a
+  // legacy `colors:` preset entry (known slot, case-insensitive) so the
+  // picker shows the color that actually renders. The first Presets-section
+  // edit persists the seeds into preset_options and _presetsChanged strips
+  // the legacy keys.
+  private _mergedPresetOptions(
+    presets: string[],
+  ): Record<string, PresetDisplayOptions> | undefined {
+    const configured = this._config?.preset_options;
+    const colors = this._config?.colors as Record<string, string> | undefined;
+    if (!colors) return configured;
+    const merged: Record<string, PresetDisplayOptions> = { ...configured };
+    for (const preset of presets) {
+      const key = preset.toLowerCase();
+      const legacy = colors[key];
+      if (
+        legacy &&
+        (CLIMATE_PRESET_COLOR_KEYS as readonly string[]).includes(key) &&
+        !merged[preset]?.color
+      ) {
+        merged[preset] = { ...merged[preset], color: legacy };
+      }
+    }
+    return merged;
+  }
+
   // Joined preset list for the colors schema and the presets panel — from
   // the preset_entity select when configured, else the climate entity.
   private get _presetModesString(): string | undefined {
@@ -158,7 +179,6 @@ export class NormalClimateCardEditor
     const schemaBefore = computeSchemaBefore(
       isBt,
       stateObj ? (stateObj.attributes.hvac_modes ?? []).join(",") : undefined,
-      presetModes,
       localize("editor.card.climate.color_source_preset"),
       localize("editor.card.climate.color_source_hvac"),
     );
@@ -237,7 +257,7 @@ export class NormalClimateCardEditor
                 <bt-presets-editor
                   .hass=${this.hass}
                   .presets=${orderedPresets}
-                  .options=${this._config?.preset_options}
+                  .options=${this._mergedPresetOptions(orderedPresets)}
                   .getLabel=${(preset: string) =>
                     stateObj
                       ? getPresetDisplayName(
@@ -250,6 +270,7 @@ export class NormalClimateCardEditor
                   .showLabelTemplate=${localize(
                     "editor.card.climate.preset_show",
                   )}
+                  .colorLabel=${localize("editor.card.climate.preset_color")}
                   @bt-presets-changed=${this._presetsChanged}
                 ></bt-presets-editor>
               </div>
@@ -288,6 +309,22 @@ export class NormalClimateCardEditor
       value.preset_order = ev.detail.order;
     } else {
       delete value.preset_order;
+    }
+    // Preset colors live in preset_options now — drop legacy `colors:`
+    // preset keys (their values were seeded into the rows above, so the
+    // pruned options carry them forward).
+    if (value.colors) {
+      const colors = Object.fromEntries(
+        Object.entries(value.colors).filter(
+          ([key]) =>
+            !(CLIMATE_PRESET_COLOR_KEYS as readonly string[]).includes(key),
+        ),
+      );
+      if (Object.keys(colors).length === 0) {
+        delete value.colors;
+      } else {
+        value.colors = colors as typeof value.colors;
+      }
     }
     this._config = value;
     this.dispatchEvent(

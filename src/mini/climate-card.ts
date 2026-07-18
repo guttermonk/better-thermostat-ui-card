@@ -57,6 +57,7 @@ import {
   climateColorOverrides,
   getHvacActionIcon,
   getHvacModeIcon,
+  getPresetColor,
   getPresetIcon,
   hasClimateColor,
 } from "../shared/climate-colors";
@@ -330,9 +331,9 @@ export class BetterThermostatUISmallCard
     if (
       this._config.colors?.color_source !== "hvac" &&
       currentPreset !== undefined &&
-      (!this._config.preset_entity || hasClimateColor(currentPreset))
+      (!this._config.preset_entity || this._presetHasColor(currentPreset))
     ) {
-      const presetColor = climateColor(currentPreset);
+      const presetColor = this._presetColor(currentPreset);
       actionStyle["--action-color"] = alphaColor(presetColor, 0.6);
       // Recolor the heat-styled temperature input to the active preset
       // (replaces the old --rgb-state-climate-heat triplet reassignment).
@@ -467,7 +468,7 @@ export class BetterThermostatUISmallCard
   ) {
     const active = mode === currentPreset;
     const pending = mode === this._pendingPreset;
-    const color = active ? climateColor(mode) : "var(--bt-color-grey)";
+    const color = active ? this._presetColor(mode) : "var(--bt-color-grey)";
     const iconStyle: StyleInfo = {
       "--icon-color": color,
       "--bg-color": alphaColor(color, 0.2),
@@ -504,6 +505,19 @@ export class BetterThermostatUISmallCard
 
   private _presetIcon(mode: string): string {
     return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
+  }
+
+  private _presetColor(mode: string): string {
+    return getPresetColor(mode, this._config?.preset_options?.[mode]?.color);
+  }
+
+  // Whether the preset maps to a real color (per-preset override or known
+  // slot) — gates the background recolor for select-based presets so
+  // unrecognized options don't force the grey fallback.
+  private _presetHasColor(mode: string): boolean {
+    return (
+      !!this._config?.preset_options?.[mode]?.color || hasClimateColor(mode)
+    );
   }
 
   // Preset changes are pointless while the device is unreachable — the
@@ -798,7 +812,7 @@ export class BetterThermostatUISmallCard
     const iconStyle: StyleInfo = {};
     const selectedMode = currentPreset ?? "none";
     if (currentPreset != null) {
-      const color = climateColor(currentPreset);
+      const color = this._presetColor(currentPreset);
       iconStyle["--icon-color"] = color;
       iconStyle["--bg-color"] = alphaColor(color, 0.2);
     }

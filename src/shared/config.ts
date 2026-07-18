@@ -95,6 +95,7 @@ export const sharedBtConfigStruct = object({
       object({
         hidden: optional(boolean()),
         icon: optional(string()),
+        color: optional(string()),
       }),
     ),
   ),

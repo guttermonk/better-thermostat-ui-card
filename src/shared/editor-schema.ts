@@ -11,7 +11,6 @@ import { HaFormSchema } from "mushroom-cards/src/utils/form/ha-form";
 import {
   CLIMATE_COLOR_KEYS,
   CLIMATE_HVAC_COLOR_KEYS,
-  CLIMATE_PRESET_COLOR_KEYS,
 } from "./climate-colors";
 import { PresetDisplayOptions } from "./climate";
 
@@ -58,9 +57,9 @@ export const CLIMATE_LABELS: string[] = [
 export const splitPresets = (presetModes?: string): string[] =>
   (presetModes ?? "").split(",").filter((p) => p && p !== "none");
 
-// Drop preset_options entries that are back to defaults (shown, no icon);
-// returns undefined when nothing is customized so the key can be removed
-// from the YAML entirely.
+// Drop preset_options entries that are back to defaults (shown, no icon, no
+// color); returns undefined when nothing is customized so the key can be
+// removed from the YAML entirely.
 export function prunePresetOptions(
   options: Record<string, PresetDisplayOptions>,
 ): Record<string, PresetDisplayOptions> | undefined {
@@ -69,6 +68,7 @@ export function prunePresetOptions(
     const clean: PresetDisplayOptions = {};
     if (entry.hidden) clean.hidden = true;
     if (entry.icon) clean.icon = entry.icon;
+    if (entry.color) clean.color = entry.color;
     if (Object.keys(clean).length > 0) pruned[preset] = clean;
   }
   return Object.keys(pruned).length > 0 ? pruned : undefined;
@@ -123,15 +123,18 @@ export const computeDisplaySection = (
 // Expandable `colors` section: NOT flattened, so ha-form reads/writes the
 // nested `colors:` config object. A `color_source` dropdown (what drives the
 // background color while a preset is active), then one clearable ui_color
-// picker per mode / preset the entity actually supports (no `default_color`
-// ⇒ clearing the picker restores the card default). Memoized on
+// picker per hvac mode the entity actually supports. Preset colors live in
+// the Presets section (per-preset `preset_options.color`) — legacy `colors:`
+// preset keys still render, they just have no picker here anymore.
+// `default_color` shows the card's actual default as the swatch of the
+// "Default color" entry; the HA state-color variables it references are
+// global, so they resolve inside the editor dialog too. Memoized on
 // joined-string keys; undefined means "entity unknown" and falls back to all
 // keys. The option labels are passed as plain strings (localized by the
 // caller) to keep the memoization key stable per language.
 export const computeColorsSchema = memoizeOne(
   (
     hvacModes?: string,
-    presetModes?: string,
     presetSourceLabel?: string,
     hvacSourceLabel?: string,
   ): HaFormSchema => {
@@ -143,17 +146,6 @@ export const computeColorsSchema = memoizeOne(
             hvacModes.split(",").includes(key),
           )
     ).filter((key) => key !== "off");
-    // Case-insensitive: select-based presets (preset_entity) report
-    // capitalized options ("Home", "Away").
-    const presetSlots =
-      presetModes === undefined
-        ? [...CLIMATE_PRESET_COLOR_KEYS]
-        : CLIMATE_PRESET_COLOR_KEYS.filter((key) =>
-            presetModes
-              .split(",")
-              .map((p) => p.toLowerCase())
-              .includes(key),
-          );
     return {
       name: "colors",
       type: "expandable",
@@ -174,9 +166,13 @@ export const computeColorsSchema = memoizeOne(
         {
           type: "grid",
           name: "",
-          schema: [...hvacSlots, ...presetSlots].map((key) => ({
+          schema: hvacSlots.map((key) => ({
             name: key,
-            selector: { ui_color: {} },
+            selector: {
+              ui_color: {
+                default_color: `rgb(var(--rgb-state-climate-${key.replace(/_/g, "-")}))`,
+              },
+            },
           })),
         },
       ],

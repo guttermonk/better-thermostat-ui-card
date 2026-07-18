@@ -53,6 +53,7 @@ import {
   climateColorOverrides,
   climateStateColor,
   getHvacModeIcon,
+  getPresetColor,
   getPresetIcon,
   hasClimateColor,
 } from "../shared/climate-colors";
@@ -552,9 +553,9 @@ export class BetterThermostatUINormalCard
     } else if (
       this._config.colors?.color_source !== "hvac" &&
       currentPreset != null &&
-      (!presetEntity || hasClimateColor(currentPreset))
+      (!presetEntity || this._presetHasColor(currentPreset))
     ) {
-      const presetColor = climateColor(currentPreset);
+      const presetColor = this._presetColor(currentPreset);
       stateColor = presetColor;
       actionColor = presetColor;
     }
@@ -1089,7 +1090,7 @@ export class BetterThermostatUINormalCard
     const stateObj = this._stateObj!;
     const active = mode === currentPreset;
     const pending = mode === this._pendingPreset;
-    const color = active ? climateColor(mode) : "var(--bt-color-grey)";
+    const color = active ? this._presetColor(mode) : "var(--bt-color-grey)";
     const iconStyle: StyleInfo = {
       "--icon-color": color,
       "--bg-color": alphaColor(color, 0.2),
@@ -1122,6 +1123,19 @@ export class BetterThermostatUINormalCard
     return getPresetIcon(mode, this._config?.preset_options?.[mode]?.icon);
   }
 
+  private _presetColor(mode: string): string {
+    return getPresetColor(mode, this._config?.preset_options?.[mode]?.color);
+  }
+
+  // Whether the preset maps to a real color (per-preset override or known
+  // slot) — gates the dial/background recolor for select-based presets so
+  // unrecognized options don't force the grey fallback.
+  private _presetHasColor(mode: string): boolean {
+    return (
+      !!this._config?.preset_options?.[mode]?.color || hasClimateColor(mode)
+    );
+  }
+
   // Preset changes are pointless while the device is unreachable — the
   // buttons stay clickable but are dimmed as a "don't bother" signal.
   private get _presetsOffline(): boolean {
@@ -1144,7 +1158,10 @@ export class BetterThermostatUINormalCard
       );
       const iconStyle: StyleInfo = {};
       const selectedMode = currentPreset ?? "none";
-      const color = climateColor(selectedMode);
+      const color =
+        currentPreset != null
+          ? this._presetColor(currentPreset)
+          : climateColor(selectedMode);
       if (currentPreset != null) {
         iconStyle["--icon-color"] = color;
         iconStyle["--bg-color"] = alphaColor(color, 0.2);

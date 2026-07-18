@@ -36,18 +36,19 @@ You can configure the cards as you like, we use the latest HA UI Configuration t
 
 ## Custom colors
 
-Both cards accept a `colors:` option to recolor HVAC modes and Better Thermostat presets — the dial, mode/preset buttons, badges and features follow the same colors. Use the color pickers in the visual editor ("Colors" section — only the HVAC modes and presets your entity actually exposes are offered; `off` is intentionally grey and has no picker), or set it in YAML. Values are HA theme color tokens (`red`, `deep-orange`, `light-green`, …) or any raw CSS color as escape hatch:
+Both cards accept a `colors:` option to recolor HVAC modes — the dial, mode buttons, badges and features follow the same colors. Use the color pickers in the visual editor ("HVAC Mode Colors" section — only the modes your entity actually exposes are offered, each picker shows the card's default color, and `off` is intentionally grey with no picker), or set it in YAML. Values are HA theme color tokens (`red`, `deep-orange`, `light-green`, …) or any raw CSS color as escape hatch:
 
 ```yaml
 type: custom:better-thermostat-normal-climate-card
 entity: climate.living_room
 colors:
   heat: deep-orange
-  eco: light-green
-  boost: "#ff00ff"
+  cool: light-blue
 ```
 
-Available keys: `auto`, `cool`, `dry`, `fan_only`, `heat`, `heat_cool`, `eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`.
+Available keys: `auto`, `cool`, `dry`, `fan_only`, `heat`, `heat_cool`.
+
+**Preset colors** are configured per preset in the Presets section (`preset_options.<name>.color` — see below). Legacy configs with preset keys inside `colors:` (`eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`) keep rendering; the editor migrates them into `preset_options` the first time you edit the Presets section.
 
 While a preset is active it drives the card's background/dial color by default. Set `color_source: hvac` inside `colors:` (the "Background color follows" dropdown in the editor's Colors section) to keep the HVAC mode color instead:
 
@@ -73,12 +74,14 @@ show_all_presets: true
 
 Options whose (case-insensitive) name matches a known preset (`eco`, `away`, `boost`, `sleep`, `comfort`, `activity`, `home`) get that preset's icon and color; other options get a generic icon.
 
-The editor's **Presets** section lists every detected preset with a drag handle to reorder the buttons, a show/hide toggle and an icon picker. In YAML this is the `preset_options` object (keyed by the raw preset/option name) plus the `preset_order` list — presets missing from the list are appended in their detected order:
+The editor's **Presets** section lists every detected preset with a drag handle to reorder the buttons, a show/hide toggle, an icon picker and a color picker (the color drives the preset's button and the card background while it is active — theme token or raw CSS, works for any preset name including custom ones like `Wake`). In YAML this is the `preset_options` object (keyed by the raw preset/option name) plus the `preset_order` list — presets missing from the list are appended in their detected order:
 
 ```yaml
 preset_options:
   eco:
     icon: mdi:leaf-circle
+  wake:
+    color: purple
   Away:
     hidden: true
 preset_order:

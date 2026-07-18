@@ -25,12 +25,13 @@ declare global {
 }
 
 const ICON_SELECTOR = { icon: {} };
+const COLOR_SELECTOR = { ui_color: {} };
 const BOOLEAN_SELECTOR = { boolean: {} };
 
 // Row list for the editors' "Presets" section: one row per detected preset
-// with a drag handle (reorder), an icon picker and a visibility switch.
-// Emits the full order + options snapshot; the card editor owns pruning and
-// writing the config.
+// with a drag handle (reorder), an icon picker, a color picker and a
+// visibility switch. Emits the full order + options snapshot; the card
+// editor owns pruning and writing the config.
 @customElement("bt-presets-editor")
 export class BtPresetsEditor extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -48,6 +49,9 @@ export class BtPresetsEditor extends LitElement {
 
   // Localized "Show {preset}" template for the switch tooltip.
   @property() public showLabelTemplate?: string;
+
+  // Localized label for the color picker column.
+  @property() public colorLabel?: string;
 
   @state() private _attached = false;
 
@@ -98,6 +102,15 @@ export class BtPresetsEditor extends LitElement {
           .value=${entry?.icon ?? ""}
           @value-changed=${(ev: CustomEvent<{ value?: string }>) =>
             this._iconChanged(preset, ev)}
+        ></ha-selector>
+        <ha-selector
+          class="color"
+          .hass=${this.hass}
+          .selector=${COLOR_SELECTOR}
+          .label=${this.colorLabel ?? "Color"}
+          .value=${entry?.color ?? ""}
+          @value-changed=${(ev: CustomEvent<{ value?: string }>) =>
+            this._colorChanged(preset, ev)}
         ></ha-selector>
         <ha-selector
           class="show"
@@ -187,6 +200,17 @@ export class BtPresetsEditor extends LitElement {
     });
   }
 
+  private _colorChanged(preset: string, ev: CustomEvent<{ value?: string }>) {
+    ev.stopPropagation();
+    this._fireChanged(this.presets, {
+      ...this.options,
+      [preset]: {
+        ...this.options?.[preset],
+        color: ev.detail.value || undefined,
+      },
+    });
+  }
+
   private _visibilityChanged(
     preset: string,
     ev: CustomEvent<{ value?: boolean }>,
@@ -232,6 +256,11 @@ export class BtPresetsEditor extends LitElement {
         .preset-row .icon {
           flex: 1;
           min-width: 0;
+        }
+
+        .preset-row .color {
+          width: 140px;
+          flex: none;
         }
       `,
     ];

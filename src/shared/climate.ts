@@ -83,7 +83,13 @@ export function getPresetModes(
 
 // Per-preset display settings from the `preset_options` card config,
 // keyed by the raw preset/option name.
-export type PresetDisplayOptions = { hidden?: boolean; icon?: string };
+export type PresetDisplayOptions = {
+  hidden?: boolean;
+  icon?: string;
+  // Theme token or raw CSS color driving the preset's button/background
+  // while active. Configured in the editor's Presets section.
+  color?: string;
+};
 
 // A preset service call can take a long round trip (e.g. ecobee via HomeKit:
 // 20-30 s). The clicked preset button shows a spinner until the entity's
