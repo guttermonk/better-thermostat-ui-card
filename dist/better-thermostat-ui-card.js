@@ -2475,7 +2475,7 @@ function(e,t){return(t,o,i)=>((e,t,o)=>(o.configurable=!0,o.enumerable=!0,Reflec
           .hass=${this.hass}
           .selector=${this._colorSelector(e)}
           .label=${this.colorLabel??"Color"}
-          .value=${t?.color??""}
+          .value=${t?.color}
           @value-changed=${t=>this._colorChanged(e,t)}
         ></ha-selector>
         <ha-selector

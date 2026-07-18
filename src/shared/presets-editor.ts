@@ -135,7 +135,7 @@ export class BtPresetsEditor extends LitElement {
           .hass=${this.hass}
           .selector=${this._colorSelector(preset)}
           .label=${this.colorLabel ?? "Color"}
-          .value=${entry?.color ?? ""}
+          .value=${entry?.color}
           @value-changed=${(ev: CustomEvent<{ value?: string }>) =>
             this._colorChanged(preset, ev)}
         ></ha-selector>
