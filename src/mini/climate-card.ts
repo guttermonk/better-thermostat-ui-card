@@ -127,13 +127,19 @@ export class BetterThermostatUISmallCard
 
     const stateObj = this._stateObj;
     const controls: ClimateCardControl[] = [];
+    // Each control is gated by its own toggle so they work independently:
+    // show_temperature_control for the setpoint input, show_mode_buttons
+    // for the hvac mode buttons.
     if (
       isTemperatureControlVisible(stateObj) &&
       this._config.show_temperature_control
     ) {
       controls.push("temperature_control");
     }
-    if (isHvacModesVisible(stateObj, ["heat", "off"])) {
+    if (
+      isHvacModesVisible(stateObj, ["heat", "off"]) &&
+      showModeButtons(this._config)
+    ) {
       controls.push("hvac_mode_control");
     }
     return controls;
@@ -292,14 +298,13 @@ export class BetterThermostatUISmallCard
     const rtl = computeRTL(this.hass);
 
     const isControlVisible =
-      showModeButtons(this._config) &&
       (!this._config.collapsible_controls || isActive(stateObj)) &&
       this._controls.length;
 
-    // Whenever the controls row is not shown (show_mode_buttons off, or the
-    // entity offers no matching controls), presets must still be reachable —
-    // like on the normal card — as long as they aren't disabled themselves
-    // and the controls aren't collapsed.
+    // Whenever the controls row is not shown (every control toggled off, or
+    // the entity offers no matching controls), presets must still be
+    // reachable — like on the normal card — as long as they aren't disabled
+    // themselves and the controls aren't collapsed.
     const presets = getVisiblePresetModes(this.hass, stateObj, this._config);
     const hasPresets = presets.length > 0;
     const isPresetOnlyVisible =
