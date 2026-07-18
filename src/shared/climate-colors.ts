@@ -109,7 +109,12 @@ export function climateColorOverrides(
   const styles: Record<string, string> = {};
   if (!colors) return styles;
   for (const [key, value] of Object.entries(colors)) {
-    if (!value || !(CLIMATE_COLOR_KEYS as readonly string[]).includes(key)) {
+    if (
+      !value ||
+      // Editor sentinel for "use the default" — never a real color.
+      value === "default" ||
+      !(CLIMATE_COLOR_KEYS as readonly string[]).includes(key)
+    ) {
       continue;
     }
     styles[`--bt-color-${key.replace(/_/g, "-")}`] = computeCssColor(value);

@@ -32,15 +32,25 @@ describe("computeColorsSchema", () => {
     ]);
   });
 
-  it("shows the card's default color as the picker's default swatch", () => {
-    const schema = computeColorsSchema("heat,heat_cool") as any;
+  it("shows the card's default color via a synthetic 'default' option", () => {
+    const schema = computeColorsSchema(
+      "heat,heat_cool",
+      undefined,
+      undefined,
+      "Default",
+    ) as any;
     const grid = schema.schema.find(
       (child: { type?: string }) => child.type === "grid",
     );
     for (const field of grid.schema) {
-      expect(field.selector.ui_color.default_color).toBe(
-        `rgb(var(--rgb-state-climate-${field.name.replace(/_/g, "-")}))`,
-      );
+      expect(field.selector.ui_color.default_color).toBe("default");
+      expect(field.selector.ui_color.extra_options).toEqual([
+        {
+          value: "default",
+          label: "Default",
+          display_color: `rgb(var(--rgb-state-climate-${field.name.replace(/_/g, "-")}))`,
+        },
+      ]);
     }
   });
 

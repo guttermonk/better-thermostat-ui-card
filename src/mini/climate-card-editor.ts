@@ -42,6 +42,7 @@ const computeSchemaBefore = memoizeOne(
     hvacModes?: string,
     presetSourceLabel?: string,
     hvacSourceLabel?: string,
+    defaultLabel?: string,
   ): HaFormSchema[] => [
     {
       name: "entity",
@@ -61,7 +62,12 @@ const computeSchemaBefore = memoizeOne(
       { name: "collapsible_controls" },
       { name: "disable_humidity" },
     ]),
-    computeColorsSchema(hvacModes, presetSourceLabel, hvacSourceLabel),
+    computeColorsSchema(
+      hvacModes,
+      presetSourceLabel,
+      hvacSourceLabel,
+      defaultLabel,
+    ),
   ],
 );
 
@@ -225,6 +231,7 @@ export class ClimateCardEditor
       stateObj ? (stateObj.attributes.hvac_modes ?? []).join(",") : undefined,
       localize("editor.card.climate.color_source_preset"),
       localize("editor.card.climate.color_source_hvac"),
+      localize("editor.card.climate.color_default"),
     );
     const schemaAfter = computeSchemaAfter(isBt);
     const orderedPresets = orderPresetModes(
@@ -372,7 +379,7 @@ export class ClimateCardEditor
     // cleared — don't persist that noise in the YAML.
     if (value.colors) {
       const colors = Object.fromEntries(
-        Object.entries(value.colors).filter(([, v]) => v),
+        Object.entries(value.colors).filter(([, v]) => v && v !== "default"),
       );
       if (Object.keys(colors).length === 0) {
         delete value.colors;

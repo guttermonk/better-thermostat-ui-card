@@ -32,6 +32,7 @@
         "section_display": "Display",
         "section_colors": "HVAC Mode Colors",
         "section_colors_helper": "Override the colors used for HVAC modes. Pick a theme color, or clear a picker to restore the default. Preset colors are set per preset in the Presets section. While a preset is active it drives the background color by default — set 'Background color follows' to 'HVAC mode' to keep the HVAC color instead.",
+        "color_default": "Default",
         "color_source": "Background color follows",
         "color_source_preset": "Active preset (default)",
         "color_source_hvac": "HVAC mode",

@@ -109,6 +109,10 @@ describe("climateColorOverrides", () => {
     });
   });
 
+  it("ignores the editor's 'default' sentinel", () => {
+    expect(climateColorOverrides({ heat: "default" })).toEqual({});
+  });
+
   it("ignores unknown keys and empty values", () => {
     expect(climateColorOverrides({ bogus: "red", heat: "" } as any)).toEqual(
       {},

@@ -126,17 +126,20 @@ export const computeDisplaySection = (
 // picker per hvac mode the entity actually supports. Preset colors live in
 // the Presets section (per-preset `preset_options.color`) — legacy `colors:`
 // preset keys still render, they just have no picker here anymore.
-// `default_color` shows the card's actual default as the swatch of the
-// "Default color" entry; the HA state-color variables it references are
-// global, so they resolve inside the editor dialog too. Memoized on
-// joined-string keys; undefined means "entity unknown" and falls back to all
-// keys. The option labels are passed as plain strings (localized by the
-// caller) to keep the memoization key stable per language.
+// An unset picker displays its `default_color` entry: a synthetic "default"
+// extra option whose `display_color` is the card's actual default (the HA
+// state-color variables are global, so they resolve inside the editor
+// dialog). Picking it writes the sentinel value "default", which the
+// editors strip back out of the config. Memoized on joined-string keys;
+// undefined means "entity unknown" and falls back to all keys. The option
+// labels are passed as plain strings (localized by the caller) to keep the
+// memoization key stable per language.
 export const computeColorsSchema = memoizeOne(
   (
     hvacModes?: string,
     presetSourceLabel?: string,
     hvacSourceLabel?: string,
+    defaultLabel?: string,
   ): HaFormSchema => {
     // "off" is deliberately grey, not a color — no picker for it.
     const hvacSlots = (
@@ -170,7 +173,14 @@ export const computeColorsSchema = memoizeOne(
             name: key,
             selector: {
               ui_color: {
-                default_color: `rgb(var(--rgb-state-climate-${key.replace(/_/g, "-")}))`,
+                default_color: "default",
+                extra_options: [
+                  {
+                    value: "default",
+                    label: defaultLabel ?? "Default",
+                    display_color: `rgb(var(--rgb-state-climate-${key.replace(/_/g, "-")}))`,
+                  },
+                ],
               },
             },
           })),
