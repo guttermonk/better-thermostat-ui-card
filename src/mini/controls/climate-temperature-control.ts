@@ -24,7 +24,7 @@ export const isTemperatureControlVisible = (entity: BtClimateEntity) =>
     entity.attributes.target_temp_low != null &&
     entity.attributes.target_temp_high != null);
 
-@customElement("mushroom-climate-temperature-control")
+@customElement("bt-climate-temperature-control")
 export class ClimateTemperatureControl extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 

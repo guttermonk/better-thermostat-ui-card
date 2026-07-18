@@ -24,7 +24,7 @@ export const isHvacModesVisible = (
     ? (entity.attributes.hvac_modes || []).length > 0
     : (entity.attributes.hvac_modes || []).some((mode) => modes.includes(mode));
 
-@customElement("mushroom-climate-hvac-modes-control")
+@customElement("bt-climate-hvac-modes-control")
 export class ClimateHvacModesControl extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 

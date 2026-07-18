@@ -41,7 +41,7 @@ export const ShadowStyles = css`
     flex: none;
   }
 
-  mushroom-climate-hvac-modes-control {
+  bt-climate-hvac-modes-control {
     justify-content: center !important;
   }
 

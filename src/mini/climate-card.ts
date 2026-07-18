@@ -136,10 +136,7 @@ export class BetterThermostatUISmallCard
     ) {
       controls.push("temperature_control");
     }
-    if (
-      isHvacModesVisible(stateObj, ["heat", "off"]) &&
-      showModeButtons(this._config)
-    ) {
+    if (isHvacModesVisible(stateObj) && showModeButtons(this._config)) {
       controls.push("hvac_mode_control");
     }
     return controls;
@@ -887,29 +884,32 @@ export class BetterThermostatUISmallCard
   }
 
   private renderActiveControl(entity: BtClimateEntity) {
-    const hvac_modes: HvacMode[] = ["heat", "off"];
+    // All of the entity's modes — Better Thermostat entities only expose
+    // heat/off, but generic entities (e.g. an ecobee) also offer
+    // cool/heat_cool. The control sorts and renders whatever it's given.
+    const hvac_modes = (entity.attributes.hvac_modes ?? []) as HvacMode[];
     const appearance = computeAppearance(this._config!);
 
     switch (this._activeControl) {
       case "temperature_control":
         return html`
-          <mushroom-climate-temperature-control
+          <bt-climate-temperature-control
             .hass=${this.hass}
             .entity=${entity}
             .fill=${appearance.layout !== "horizontal"}
-          ></mushroom-climate-temperature-control>
+          ></bt-climate-temperature-control>
           ${this.renderPresetFeature(entity)}
         `;
       case "hvac_mode_control":
         return html`
-          <mushroom-climate-hvac-modes-control
+          <bt-climate-hvac-modes-control
             .hass=${this.hass}
             .entity=${entity}
             .modes=${hvac_modes}
             .fill=${appearance.layout !== "horizontal"}
             .disableEco=${this._config?.disable_eco}
             .feature=${this.renderPresetFeature(entity)}
-          ></mushroom-climate-hvac-modes-control>
+          ></bt-climate-hvac-modes-control>
         `;
       default:
         return nothing;
@@ -956,8 +956,8 @@ export class BetterThermostatUISmallCard
         mushroom-state-item {
           cursor: pointer;
         }
-        mushroom-climate-temperature-control,
-        mushroom-climate-hvac-modes-control {
+        bt-climate-temperature-control,
+        bt-climate-hvac-modes-control {
           flex: 1;
         }
         /* Base overlay skeleton comes from the shared presetOverlayStyle. */
