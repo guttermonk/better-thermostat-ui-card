@@ -1229,12 +1229,15 @@ export class BetterThermostatUINormalCard
       iconStyle["--icon-color"] = color;
       iconStyle["--bg-color"] = alphaColor(color, 0.2);
     }
+    const label = this.hass.formatEntityState(this._stateObj, mode);
 
     return html`
       <mushroom-button
         style=${styleMap(iconStyle)}
         .mode=${mode}
         .disabled=${!isAvailable(this._stateObj)}
+        title=${label}
+        aria-label=${label}
         @click=${this.triggerModeChange.bind(this, mode)}
       >
         <bt-icon .icon=${getHvacModeIcon(mode as HvacMode)}></bt-icon>

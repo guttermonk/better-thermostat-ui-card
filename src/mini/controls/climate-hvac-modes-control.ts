@@ -11,6 +11,7 @@ import {
 } from "mushroom-cards/src/ha";
 import { ensureElementLoaded } from "../../shared/ensure-element-loaded";
 import { BtClimateEntity } from "../../shared/climate";
+import { localize } from "../../shared/localize";
 import { climateColor, getHvacModeIcon } from "../../shared/climate-colors";
 import { alphaColor } from "../../shared/color";
 import "../../shared/bt-icon";
@@ -80,10 +81,14 @@ export class ClimateHvacModesControl extends LitElement {
       iconStyle["--bg-color"] = alphaColor("var(--bt-color-eco)", 0.2);
     }
 
+    const label =
+      localize({ hass: this.hass, string: "extra_states.eco" }) || "Eco";
     return html`
       <mushroom-button
         style=${styleMap(iconStyle)}
         .disabled=${!isAvailable(this.entity)}
+        title=${label}
+        aria-label=${label}
         @click=${this.toggleEco}
       >
         <bt-icon icon="mdi:leaf"></bt-icon>
@@ -136,12 +141,15 @@ export class ClimateHvacModesControl extends LitElement {
       iconStyle["--icon-color"] = color;
       iconStyle["--bg-color"] = alphaColor(color, 0.2);
     }
+    const label = this.hass.formatEntityState(this.entity, mode);
 
     return html`
       <mushroom-button
         style=${styleMap(iconStyle)}
         .mode=${mode}
         .disabled=${!isAvailable(this.entity)}
+        title=${label}
+        aria-label=${label}
         @click=${this.callService}
       >
         <bt-icon .icon=${getHvacModeIcon(mode)}></bt-icon>
