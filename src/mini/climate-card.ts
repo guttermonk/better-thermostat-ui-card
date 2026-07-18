@@ -333,11 +333,13 @@ export class BetterThermostatUISmallCard
       currentPreset !== undefined &&
       (!this._config.preset_entity || this._presetHasColor(currentPreset))
     ) {
-      const presetColor = this._presetColor(currentPreset);
-      actionStyle["--action-color"] = alphaColor(presetColor, 0.6);
-      // Recolor the heat-styled temperature input to the active preset
-      // (replaces the old --rgb-state-climate-heat triplet reassignment).
-      actionStyle["--bt-color-heat"] = presetColor;
+      // Background tint only — the temperature inputs and mode buttons keep
+      // their heat/cool colors (the old --bt-color-heat hijack recolored the
+      // low range input and the heat mode button to the preset color).
+      actionStyle["--action-color"] = alphaColor(
+        this._presetColor(currentPreset),
+        0.6,
+      );
     }
 
     if (window) {

@@ -96,8 +96,9 @@ export class ClimateTemperatureControl extends LitElement {
             maximumFractionDigits: 1,
           };
 
-    // Reads the inherited --bt-color-* layer: the mini card recolors
-    // --bt-color-heat to the active preset instead of reassigning triplets.
+    // Reads the inherited --bt-color-* layer: the low/high inputs always
+    // follow the heat/cool mode colors (themes and the HVAC Mode Colors
+    // config), independent of the active preset.
     const modeStyle = (mode: "heat" | "cool") => ({
       "--bg-color": alphaColor(`var(--bt-color-${mode})`, 0.05),
       "--icon-color": `var(--bt-color-${mode})`,
