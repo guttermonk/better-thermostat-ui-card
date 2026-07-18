@@ -299,6 +299,7 @@ export class ClimateCardEditor
                     "editor.card.climate.preset_show",
                   )}
                   .colorLabel=${localize("editor.card.climate.preset_color")}
+                  .defaultLabel=${localize("editor.card.climate.color_default")}
                   @bt-presets-changed=${this._presetsChanged}
                 ></bt-presets-editor>
               </div>

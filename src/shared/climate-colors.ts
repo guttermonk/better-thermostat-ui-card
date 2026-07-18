@@ -50,6 +50,25 @@ export const CLIMATE_PRESET_COLOR_KEYS = [
   "home",
 ] as const;
 
+// Default RGB triplets for the preset color slots — the single source for
+// both the card stylesheet (btStateColorsStyle builds --bt-state-* from
+// this) and the editor's "Default" swatches, which can't read the
+// card-scoped variables from inside the dialog. Themes overriding
+// --bt-state-* still win at render time; the editor swatch then shows the
+// un-themed default, which is the best it can know.
+export const CLIMATE_PRESET_DEFAULT_RGB: Record<
+  (typeof CLIMATE_PRESET_COLOR_KEYS)[number],
+  string
+> = {
+  eco: "165, 214, 167",
+  away: "176, 190, 197",
+  boost: "239, 83, 80",
+  sleep: "63, 81, 181",
+  comfort: "121, 85, 72",
+  activity: "230, 74, 25",
+  home: "76, 175, 80",
+};
+
 export const CLIMATE_COLOR_KEYS = [
   ...CLIMATE_HVAC_COLOR_KEYS,
   ...CLIMATE_PRESET_COLOR_KEYS,

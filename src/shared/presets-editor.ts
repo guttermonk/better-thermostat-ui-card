@@ -6,6 +6,7 @@ import type { SortableEvent } from "sortablejs";
 import { fireEvent, HomeAssistant } from "mushroom-cards/src/ha";
 import { sortableStyles } from "mushroom-cards/src/ha/resources/ha-sortable-styles";
 import { PresetDisplayOptions } from "./climate";
+import { CLIMATE_PRESET_DEFAULT_RGB } from "./climate-colors";
 import "./bt-icon";
 
 // Same lazy singleton pattern as mushroom's chips editor — sortablejs is
@@ -25,7 +26,6 @@ declare global {
 }
 
 const ICON_SELECTOR = { icon: {} };
-const COLOR_SELECTOR = { ui_color: {} };
 const BOOLEAN_SELECTOR = { boolean: {} };
 
 // Row list for the editors' "Presets" section: one row per detected preset
@@ -52,6 +52,33 @@ export class BtPresetsEditor extends LitElement {
 
   // Localized label for the color picker column.
   @property() public colorLabel?: string;
+
+  // Localized label for the picker's "Default" entry.
+  @property() public defaultLabel?: string;
+
+  // An unset picker displays the preset's actual default color: the known
+  // slot's default for recognized presets, grey for custom ones. Same
+  // "default" sentinel mechanism as the HVAC color pickers — _colorChanged
+  // maps it back to "no override". The card-scoped --bt-state-* variables
+  // don't resolve inside the dialog, hence the concrete RGB values.
+  private _colorSelector(preset: string) {
+    const rgb =
+      CLIMATE_PRESET_DEFAULT_RGB[
+        preset.toLowerCase() as keyof typeof CLIMATE_PRESET_DEFAULT_RGB
+      ];
+    return {
+      ui_color: {
+        default_color: "default",
+        extra_options: [
+          {
+            value: "default",
+            label: this.defaultLabel ?? "Default",
+            display_color: rgb ? `rgb(${rgb})` : "var(--grey-color)",
+          },
+        ],
+      },
+    };
+  }
 
   @state() private _attached = false;
 
@@ -106,7 +133,7 @@ export class BtPresetsEditor extends LitElement {
         <ha-selector
           class="color"
           .hass=${this.hass}
-          .selector=${COLOR_SELECTOR}
+          .selector=${this._colorSelector(preset)}
           .label=${this.colorLabel ?? "Color"}
           .value=${entry?.color ?? ""}
           @value-changed=${(ev: CustomEvent<{ value?: string }>) =>
@@ -202,11 +229,13 @@ export class BtPresetsEditor extends LitElement {
 
   private _colorChanged(preset: string, ev: CustomEvent<{ value?: string }>) {
     ev.stopPropagation();
+    const value = ev.detail.value;
     this._fireChanged(this.presets, {
       ...this.options,
       [preset]: {
         ...this.options?.[preset],
-        color: ev.detail.value || undefined,
+        // "default" is the picker's reset-to-default sentinel, not a color.
+        color: value && value !== "default" ? value : undefined,
       },
     });
   }
