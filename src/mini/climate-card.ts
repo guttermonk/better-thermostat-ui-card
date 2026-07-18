@@ -760,11 +760,21 @@ export class BetterThermostatUISmallCard
 
     return html`
       ${otherControls.map(
-        (ctrl) => html`
-          <mushroom-button @click=${(e: Event) => this._onControlTap(ctrl, e)}>
-            <bt-icon .icon=${CONTROLS_ICONS[ctrl]}></bt-icon>
-          </mushroom-button>
-        `,
+        (ctrl) => {
+          const label = localize({
+            hass: this.hass,
+            string: `controls.${ctrl}`,
+          });
+          return html`
+            <mushroom-button
+              title=${label}
+              aria-label=${label}
+              @click=${(e: Event) => this._onControlTap(ctrl, e)}
+            >
+              <bt-icon .icon=${CONTROLS_ICONS[ctrl]}></bt-icon>
+            </mushroom-button>
+          `;
+        },
       )}
     `;
   }

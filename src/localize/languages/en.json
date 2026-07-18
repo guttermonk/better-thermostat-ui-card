@@ -48,6 +48,10 @@
       }
     }
   },
+  "controls": {
+    "temperature_control": "Temperature",
+    "hvac_mode_control": "HVAC modes"
+  },
   "extra_states": {
     "presets": "Presets",
     "window_open": "Window open",
