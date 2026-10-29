@@ -15,7 +15,7 @@ jobs:
     name: Test build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # The job only installs and builds — no git push/commit access needed.
           persist-credentials: false
