@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # The card ships to a browser, so `dependencies` are the ones that matter;
+  # the dev toolchain only has to keep building. Dependabot's npm ecosystem
+  # covers Bun and updates bun.lock, which CI installs with
+  # --frozen-lockfile -- so the lockfile has to move in the same PR.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      # Shipped code. Patch bumps grouped, minor and major left on their own.
+      runtime-patch:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+      # Build and lint tooling. Nothing here reaches a user's browser, so one
+      # PR for everything short of a major is enough.
+      tooling:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    # mushroom-cards is pinned to a git commit
+    # (github:piitaya/lovelace-mushroom#3f0c3d1). Dependabot does not update
+    # git-ref dependencies, so it stays manual whether or not it is listed --
+    # ignored here only to make that explicit.
+    ignore:
+      - dependency-name: "mushroom-cards"
+
+  # checkout@v5 / setup-bun@v2 are current, but hacs/action@main is a branch
+  # ref Dependabot cannot pin -- that one is unversioned by upstream's choice.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
